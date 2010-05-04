@@ -51,7 +51,7 @@ import multivalent.std.adaptor.pdf.PDF;
  * 
  */
 @SuppressWarnings("serial")
-public class JPdfCrop extends JFrame implements ActionListener,
+public class Briss extends JFrame implements ActionListener,
 		PropertyChangeListener {
 
 	private JCheckBox mirrorMode;
@@ -63,7 +63,7 @@ public class JPdfCrop extends JFrame implements ActionListener,
 	private final String MIRROR_MODE_TEXT = "Mirror Mode";
 	private final String LOAD_FILE_TEXT = "Open Pdf for cropping";
 
-	public JPdfCrop() {
+	public Briss() {
 		super("JpdfCrop");
 		init();
 
@@ -141,7 +141,7 @@ public class JPdfCrop extends JFrame implements ActionListener,
 	}
 
 	public static void main(String args[]) {
-		new JPdfCrop();
+		new Briss();
 	}
 
 	@Override

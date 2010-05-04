@@ -1,5 +1,3 @@
-import java.awt.AlphaComposite;
-import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 
@@ -7,8 +5,6 @@ import java.awt.image.BufferedImage;
 import java.awt.image.Raster;
 import java.awt.image.WritableRaster;
 import java.io.File;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 
 import javax.imageio.ImageIO;
 
@@ -136,7 +132,6 @@ public class PDFToImageConverter {
 			ImageIO.write(evenImage, "jpg", new File("even.jpg"));
 			oddImage.setData(rasterOdd);
 			ImageIO.write(oddImage, "jpg", new File("odd.jpg"));
-			// ImageIO.write(img, "jpg", outfile);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

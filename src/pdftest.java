@@ -21,7 +21,7 @@ public class pdftest {
 		/* chapter02/HelloWorldReader.java */
 		PdfReader reader;
 		try {
-			String filename = "BeginningAndroid.pdf";
+			String filename = "input.pdf";
 			reader = new PdfReader(filename);
 
 			PdfStamper stamper = new PdfStamper(reader,
@@ -60,43 +60,6 @@ public class pdftest {
 				new_cropbox.add(new PdfNumber(value.floatValue()-50));
 				pageDict.put(PdfName.CROPBOX, new_cropbox);
 				
-				//
-				// If Not
-				// pageDict.GetAsArray(iTextSharp.text.pdf.PdfName.CROPBOX) Is
-				// Nothing
-				// Then
-				// newCropBox = New iTextSharp.text.pdf.PdfArray
-				// oldCropBox =
-				// pageDict.GetAsArray(iTextSharp.text.pdf.PdfName.CROPBOX).ArrayList
-				// value = CType(oldCropBox(0), iTextSharp.text.pdf.PdfNumber)
-				// newCropBox.Add(New PdfNumber(value.FloatValue() - 36))
-				// value = CType(oldCropBox(1), iTextSharp.text.pdf.PdfNumber)
-				// newCropBox.Add(New PdfNumber(value.FloatValue() - 36))
-				// value = CType(oldCropBox(2), iTextSharp.text.pdf.PdfNumber)
-				// newCropBox.Add(New PdfNumber(value.FloatValue() + 36))
-				// value = CType(oldCropBox(3), iTextSharp.text.pdf.PdfNumber)
-				// newCropBox.Add(New PdfNumber(value.FloatValue() + 36))
-				//
-				// pageDict.Put(iTextSharp.text.pdf.PdfName.CROPBOX, newCropBox)
-				// End If
-				//
-//				If Not pageDict.GetAsArray(iTextSharp.text.pdf.PdfName.CROPBOX) Is Nothing
-//				Then
-//				    newCropBox = New iTextSharp.text.pdf.PdfArray
-//				    oldCropBox =
-//				pageDict.GetAsArray(iTextSharp.text.pdf.PdfName.CROPBOX).ArrayList
-//				    value = CType(oldCropBox(0), iTextSharp.text.pdf.PdfNumber)
-//				    newCropBox.Add(New PdfNumber(value.FloatValue() - 36))
-//				    value = CType(oldCropBox(1), iTextSharp.text.pdf.PdfNumber)
-//				    newCropBox.Add(New PdfNumber(value.FloatValue() - 36))
-//				    value = CType(oldCropBox(2), iTextSharp.text.pdf.PdfNumber)
-//				    newCropBox.Add(New PdfNumber(value.FloatValue() + 36))
-//				    value = CType(oldCropBox(3), iTextSharp.text.pdf.PdfNumber)
-//				    newCropBox.Add(New PdfNumber(value.FloatValue() + 36))
-	//
-//				    pageDict.Put(iTextSharp.text.pdf.PdfName.CROPBOX, newCropBox)
-//				End If
-
 				directcontent = stamper.getOverContent(i);
 				directcontent.beginText();
 				directcontent.setFontAndSize(font, 12);
