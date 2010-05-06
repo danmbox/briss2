@@ -15,14 +15,18 @@ import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.concurrent.ExecutionException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 
+import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
+import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.SwingWorker;
 import javax.swing.filechooser.FileFilter;
@@ -42,6 +46,7 @@ import multivalent.Behavior;
 import multivalent.Context;
 import multivalent.Document;
 import multivalent.Node;
+import multivalent.ParseException;
 import multivalent.std.adaptor.pdf.PDF;
 
 /**
@@ -55,10 +60,14 @@ public class Briss extends JFrame implements ActionListener,
 		PropertyChangeListener {
 
 	private JCheckBox mirrorMode;
-	private MergedPanel evenPanel, oddPanel;
+	private JPanel previewPanel;
 	private JProgressBar progressBar;
+	private JButton cropBtn;
 	private JMenu menu;
-	private LoadImageFromPDFTask task;
+	private ClusterPagesTask clusterTask;
+	
+	private final static int MAX_DOC_X = 30;
+	private final static int MAX_DOC_Y = 30;
 
 	private final String MIRROR_MODE_TEXT = "Mirror Mode";
 	private final String LOAD_FILE_TEXT = "Open Pdf for cropping";
@@ -66,10 +75,9 @@ public class Briss extends JFrame implements ActionListener,
 	public Briss() {
 		super("JpdfCrop");
 		init();
-
 	}
 
-	private File getPDF() {
+	private File loadPDF() {
 		JFileChooser fc = new JFileChooser();
 		fc.setFileFilter(new FileFilter() {
 			@Override
@@ -107,12 +115,16 @@ public class Briss extends JFrame implements ActionListener,
 		menuBar.add(menu);
 		this.setJMenuBar(menuBar);
 
-		evenPanel = new MergedPanel();
-		evenPanel.setEnabled(false);
-		oddPanel = new MergedPanel();
-		oddPanel.setEnabled(false);
+		previewPanel = new JPanel();
+		previewPanel.setLayout(new GridBagLayout());
+		previewPanel.setEnabled(true);
+
 		mirrorMode = new JCheckBox(MIRROR_MODE_TEXT);
 		mirrorMode.setEnabled(false);
+
+		cropBtn = new JButton("Crop");
+		cropBtn.setEnabled(false);
+
 		progressBar = new JProgressBar(0, 100);
 		progressBar.setStringPainted(true);
 		progressBar.setEnabled(true);
@@ -122,14 +134,15 @@ public class Briss extends JFrame implements ActionListener,
 		GridBagConstraints c = new GridBagConstraints();
 		c.gridx = 0;
 		c.gridy = 0;
-		add(evenPanel, c);
-		c.gridx = 1;
-		c.gridy = 0;
-		add(oddPanel, c);
+		c.gridwidth = 2;
+		add(previewPanel, c);
+		c.gridwidth = 1;
 		c.gridx = 0;
 		c.gridy = 1;
-
 		add(mirrorMode, c);
+		c.gridx = 1;
+		c.gridy = 1;
+		add(cropBtn, c);
 		c.gridx = 0;
 		c.gridy = 2;
 		c.gridwidth = 2;
@@ -149,24 +162,24 @@ public class Briss extends JFrame implements ActionListener,
 		if (aE.getActionCommand().equals(MIRROR_MODE_TEXT)) {
 			if (mirrorMode.isSelected()) {
 				// connect both panels for mirror mode
-				evenPanel.setConnectedMerge(oddPanel);
-				oddPanel.setConnectedMerge(evenPanel);
+				// evenPanel.setConnectedMerge(oddPanel);
+				// oddPanel.setConnectedMerge(evenPanel);
 			} else {
 				// disconnect them
-				evenPanel.setConnectedMerge(null);
-				oddPanel.setConnectedMerge(null);
+				// evenPanel.setConnectedMerge(null);
+				// oddPanel.setConnectedMerge(null);
 			}
 		} else if (aE.getActionCommand().equals(LOAD_FILE_TEXT)) {
 			mirrorMode.setEnabled(false);
-			evenPanel.setEnabled(false);
-			oddPanel.setEnabled(false);
+			// evenPanel.setEnabled(false);
+			// oddPanel.setEnabled(false);
 			menu.setEnabled(false);
 			progressBar.setString("loading PDF");
 			setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-			File origPdf = getPDF();
-			task = new LoadImageFromPDFTask(origPdf);
-			task.addPropertyChangeListener(this);
-			task.execute();
+			File origPdf = loadPDF();
+			clusterTask = new ClusterPagesTask(origPdf);
+			clusterTask.addPropertyChangeListener(this);
+			clusterTask.execute();
 		}
 	}
 
@@ -183,8 +196,13 @@ public class Briss extends JFrame implements ActionListener,
 		}
 
 		@Override
+		protected void done() {
+			cropBtn.setEnabled(true);
+		}
+
+		@Override
 		protected Void doInBackground() throws Exception {
-			
+
 			PdfReader reader;
 			try {
 				reader = new PdfReader(pdfFile.getAbsolutePath());
@@ -294,59 +312,67 @@ public class Briss extends JFrame implements ActionListener,
 		}
 	}
 
-	private class LoadImageFromPDFTask extends
-			SwingWorker<BufferedImage[], Void> {
+	private class ClusterPagesTask extends
+			SwingWorker<PDFPageClusterInfo[], Void> {
 
 		private File pdfFile;
+		private PDFPageClusterInfo[] clustersMapping;
+		private HashMap<PDFPageClusterInfo, List<Integer>> clusterToPageSet;
+		private int pageCount;
 
-		public LoadImageFromPDFTask(File pdfFile) {
+		public ClusterPagesTask(File pdfFile) {
 			super();
 			this.pdfFile = pdfFile;
+			PDF pdf = (PDF) Behavior.getInstance("AdobePDF", "AdobePDF", null,
+					null, null);
+			progressBar.setString("Analysing PDF pages");
+			try {
+				pdf.setInput(pdfFile);
+				Document doc = new Document("doc", null, null);
+				pdf.parse(doc);
+				doc.clear();
+				pageCount = pdf.getReader().getPageCnt();
+				clustersMapping = new PDFPageClusterInfo[pageCount];
+				clusterToPageSet = new HashMap<PDFPageClusterInfo, List<Integer>>();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (ParseException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+
 		}
 
 		@Override
 		protected void done() {
-
-			BufferedImage[] evenAndOdd;
-			try {
-				evenAndOdd = task.get();
-				evenPanel.setImage(evenAndOdd[0]);
-				oddPanel.setImage(evenAndOdd[1]);
-				setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			} catch (ExecutionException e) {
-				e.printStackTrace();
+			setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+			int yposition = 0;
+			for (PDFPageClusterInfo cluster : clusterToPageSet.keySet()) {
+				MergedPanel p = new MergedPanel();
+				p.setImage(cluster.getPreviewImage());
+				GridBagConstraints c = new GridBagConstraints();
+				c.gridx = yposition++;
+				c.gridy = 0;
+				add(p, c);
 			}
+			previewPanel.setVisible(true);
 			progressBar
 					.setString("PDF loaded - Select crop size and press crop");
 			progressBar.setValue(0);
 			mirrorMode.setEnabled(true);
-			evenPanel.setEnabled(true);
-			oddPanel.setEnabled(true);
 			menu.setEnabled(true);
 			pack();
 		}
 
 		@Override
-		protected BufferedImage[] doInBackground() throws Exception {
-			BufferedImage[] evenAndOdd = null;
+		protected PDFPageClusterInfo[] doInBackground() throws Exception {
+			PDF pdf = (PDF) Behavior.getInstance("AdobePDF", "AdobePDF", null,
+					null, null);
+			Document doc = new Document("doc", null, null);
 			try {
-				evenAndOdd = new BufferedImage[2];
-				PDF pdf = (PDF) Behavior.getInstance("AdobePDF", "AdobePDF",
-						null, null, null);
-				pdf.setInput(pdfFile);
-				Document doc = new Document("doc", null, null);
-				pdf.parse(doc);
-				doc.clear();
-				int iPageCount = pdf.getReader().getPageCnt();
-				iPageCount = 10;
-				WritableRaster rasterEven = null;
-				WritableRaster rasterOdd = null;
-				double[][] odd = null;
-				double[][] even = null;
 
-				for (int i = 2; i < iPageCount; i++) {
+				for (int i = 1; i <= pageCount; i++) {
 					pdf = (PDF) Behavior.getInstance("AdobePDF", "AdobePDF",
 							null, null, null);
 					pdf.setInput(pdfFile);
@@ -355,16 +381,74 @@ public class Briss extends JFrame implements ActionListener,
 					doc.clear();
 					doc.putAttr(Document.ATTR_PAGE, Integer.toString(i));
 					pdf.parse(doc);
+					Node top = doc.childAt(0);
+					doc.formatBeforeAfter(MAX_DOC_X, MAX_DOC_Y, null);
+					int w = top.bbox.width;
+					int h = top.bbox.height;
+
+					// create Cluster
+					PDFPageClusterInfo tmpCluster = new PDFPageClusterInfo(
+							i % 2 == 0, w, h);
+
+					if (clusterToPageSet.containsKey(tmpCluster)) {
+						// cluster exists
+						List<Integer> pageNumbers = clusterToPageSet
+								.get(tmpCluster);
+						pageNumbers.add(i);
+					} else {
+						// new Cluster
+						List<Integer> pageNumbers = new ArrayList<Integer>();
+						pageNumbers.add(i);
+						clusterToPageSet.put(tmpCluster, pageNumbers);
+					}
+					clustersMapping[i-1] = tmpCluster;
+
+					pdf.getReader().close();
+					doc = null;
+					setProgress(0);
+					int percent = (int) ((i / (float) pageCount) * 100);
+					setProgress(percent);
+				}
+
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+
+			// for every cluster create a set of pages on which the preview will
+			// be based
+			for (PDFPageClusterInfo cluster : clusterToPageSet.keySet()) {
+				cluster.choosePagesToMerge(clusterToPageSet.get(cluster));
+			}
+
+			int clusterCounter = 1;
+			for (PDFPageClusterInfo cluster : clusterToPageSet.keySet()) {
+				WritableRaster raster = null;
+				double[][] imageData = null;
+				progressBar.setString("PDF analysed - creating cluster:"
+						+ clusterCounter++);
+				progressBar.setValue(0);
+
+				int pageCounter = 0;
+				for (Integer pageNumber : cluster.getPagesToMerge()) {
+					pdf = (PDF) Behavior.getInstance("AdobePDF", "AdobePDF",
+							null, null, null);
+					pdf.setInput(pdfFile);
+					doc = new Document("doc", null, null);
+					pdf.parse(doc);
+					doc.clear();
+					doc.putAttr(Document.ATTR_PAGE, Integer
+							.toString(pageNumber));
+					pdf.parse(doc);
 
 					Node top = doc.childAt(0);
 
-					doc.formatBeforeAfter(600, 600, null);
-					int w = top.bbox.width;
-					int h = top.bbox.height;
-					BufferedImage img = new BufferedImage(w, h,
+					doc.formatBeforeAfter(MAX_DOC_X, MAX_DOC_Y, null);
+					BufferedImage img = new BufferedImage(cluster
+							.getPageWidth(), cluster.getPageHeight(),
 							BufferedImage.TYPE_INT_RGB);
 					Graphics2D g = img.createGraphics();
-					g.setClip(0, 0, w, h);
+					g.setClip(0, 0, cluster.getPageWidth(), cluster
+							.getPageHeight());
 
 					g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
 							RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
@@ -375,50 +459,38 @@ public class Briss extends JFrame implements ActionListener,
 
 					Context cx = doc.getStyleSheet().getContext(g, null);
 					top.paintBeforeAfter(g.getClipBounds(), cx);
-					if (evenAndOdd[0] == null) {
-						evenAndOdd[0] = new BufferedImage(img.getWidth(), img
-								.getHeight(), BufferedImage.TYPE_BYTE_GRAY);
-						evenAndOdd[1] = new BufferedImage(img.getWidth(), img
-								.getHeight(), BufferedImage.TYPE_BYTE_GRAY);
-						even = new double[img.getWidth()][img.getHeight()];
-						odd = new double[img.getWidth()][img.getHeight()];
-						rasterEven = evenAndOdd[0].getRaster()
-								.createCompatibleWritableRaster();
-						rasterOdd = evenAndOdd[1].getRaster()
-								.createCompatibleWritableRaster();
-					}
 
-					if (i % 2 == 0) {
-						average(img, even);
-					} else {
-						average(img, odd);
+					BufferedImage preview = cluster.getPreviewImage();
+					if (preview == null) {
+						preview = new BufferedImage(img.getWidth(), img
+								.getHeight(), BufferedImage.TYPE_BYTE_GRAY);
+						imageData = new double[img.getWidth()][img.getHeight()];
+						raster = preview.getRaster()
+								.createCompatibleWritableRaster();
+						cluster.setPreviewImage(preview);
 					}
+					average(img, imageData);
+
 					doc.removeAllChildren();
 					cx.reset();
 					g.dispose();
 					pdf.getReader().close();
 					doc = null;
-					setProgress(0);
-					int percent = (int) ((i / (float) iPageCount) * 100);
+					int percent = (int) ((pageCounter++ / (float) cluster
+							.getPagesToMerge().size()) * 100);
 					setProgress(percent);
 				}
-				// average.setData(raster);
-				for (int k = 0; k < evenAndOdd[0].getHeight(); ++k) {
-					for (int j = 0; j < evenAndOdd[0].getWidth(); ++j) {
-						rasterEven.setSample(j, k, 0, Math.round(even[j][k]
-								/ (iPageCount / 2)));
-						rasterOdd.setSample(j, k, 0, Math.round(odd[j][k]
-								/ (iPageCount / 2)));
+				for (int k = 0; k < cluster.getPreviewImage().getHeight(); ++k) {
+					for (int j = 0; j < cluster.getPreviewImage().getWidth(); ++j) {
+						raster.setSample(j, k, 0, Math.round(imageData[j][k]
+								/ (cluster.getPagesToMerge().size() / 2)));
 					}
 				}
-				evenAndOdd[0].setData(rasterEven);
-				evenAndOdd[1].setData(rasterOdd);
-			} catch (Exception e) {
-				e.printStackTrace();
+				cluster.getPreviewImage().setData(raster);
 			}
-			return evenAndOdd;
-		}
 
+			return clustersMapping;
+		}
 	}
 
 	static void average(BufferedImage image, double[][] values) {
