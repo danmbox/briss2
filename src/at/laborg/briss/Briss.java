@@ -1,13 +1,13 @@
-package at.laborg.jpdfcrop;
+package at.laborg.briss;
 
 import java.awt.Cursor;
+import java.awt.Dimension;
 import java.awt.Graphics2D;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.RenderingHints;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 import java.awt.image.WritableRaster;
 import java.beans.PropertyChangeEvent;
@@ -20,22 +20,16 @@ import java.util.HashMap;
 import java.util.List;
 
 import javax.swing.JButton;
-import javax.swing.JCheckBox;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
-import javax.swing.JMenu;
-import javax.swing.JMenuBar;
-import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
+import javax.swing.JScrollPane;
 import javax.swing.SwingWorker;
 import javax.swing.filechooser.FileFilter;
 
 import com.itextpdf.text.DocumentException;
-import com.itextpdf.text.Element;
-import com.itextpdf.text.pdf.BaseFont;
 import com.itextpdf.text.pdf.PdfArray;
-import com.itextpdf.text.pdf.PdfContentByte;
 import com.itextpdf.text.pdf.PdfDictionary;
 import com.itextpdf.text.pdf.PdfName;
 import com.itextpdf.text.pdf.PdfNumber;
@@ -59,21 +53,24 @@ import multivalent.std.adaptor.pdf.PDF;
 public class Briss extends JFrame implements ActionListener,
 		PropertyChangeListener {
 
-	private JCheckBox mirrorMode;
+	private static final String LOAD = "Load File";
+	private static final String CROP = "Crop PDF";
+
+	private PDFPageClusterInfo[] clustersMapping;
+	private HashMap<PDFPageClusterInfo, List<Integer>> clusterToPageSet;
+
 	private JPanel previewPanel;
 	private JProgressBar progressBar;
-	private JButton cropBtn;
-	private JMenu menu;
+	private JButton actionBtn;
 	private ClusterPagesTask clusterTask;
-	
+	private CropPDFTask cropTask;
+	private File origFile = null;
+
 	private final static int MAX_DOC_X = 30;
 	private final static int MAX_DOC_Y = 30;
 
-	private final String MIRROR_MODE_TEXT = "Mirror Mode";
-	private final String LOAD_FILE_TEXT = "Open Pdf for cropping";
-
 	public Briss() {
-		super("JpdfCrop");
+		super("BRISS - BRigt Snippet Sire");
 		init();
 	}
 
@@ -105,47 +102,36 @@ public class Briss extends JFrame implements ActionListener,
 		setDefaultCloseOperation(EXIT_ON_CLOSE);
 		this.setLayout(new GridBagLayout());
 
-		JMenuBar menuBar = new JMenuBar();
-		menu = new JMenu("File");
-		menu.setMnemonic(KeyEvent.VK_F);
-		JMenuItem loadFileItem = new JMenuItem(LOAD_FILE_TEXT);
-		loadFileItem.addActionListener(this);
-		menu.add(loadFileItem);
-
-		menuBar.add(menu);
-		this.setJMenuBar(menuBar);
-
 		previewPanel = new JPanel();
 		previewPanel.setLayout(new GridBagLayout());
 		previewPanel.setEnabled(true);
 
-		mirrorMode = new JCheckBox(MIRROR_MODE_TEXT);
-		mirrorMode.setEnabled(false);
-
-		cropBtn = new JButton("Crop");
-		cropBtn.setEnabled(false);
+		actionBtn = new JButton(LOAD);
+		actionBtn.setEnabled(true);
+		actionBtn.setPreferredSize(new Dimension(300, 30));
+		actionBtn.addActionListener(this);
 
 		progressBar = new JProgressBar(0, 100);
 		progressBar.setStringPainted(true);
+		progressBar.setPreferredSize(new Dimension(300, 30));
 		progressBar.setEnabled(true);
-
-		mirrorMode.addActionListener(this);
 
 		GridBagConstraints c = new GridBagConstraints();
 		c.gridx = 0;
 		c.gridy = 0;
-		c.gridwidth = 2;
-		add(previewPanel, c);
-		c.gridwidth = 1;
+		c.fill = GridBagConstraints.BOTH;
+		c.weightx = 1;
+		c.weighty = 1;
+		c.anchor = GridBagConstraints.CENTER;
+		add(new JScrollPane(previewPanel), c);
+		c = new GridBagConstraints();
 		c.gridx = 0;
 		c.gridy = 1;
-		add(mirrorMode, c);
-		c.gridx = 1;
-		c.gridy = 1;
-		add(cropBtn, c);
+		c.fill = GridBagConstraints.BOTH;
+		add(actionBtn, c);
+		c = new GridBagConstraints();
 		c.gridx = 0;
 		c.gridy = 2;
-		c.gridwidth = 2;
 		c.fill = GridBagConstraints.BOTH;
 		add(progressBar, c);
 		pack();
@@ -159,45 +145,41 @@ public class Briss extends JFrame implements ActionListener,
 
 	@Override
 	public void actionPerformed(ActionEvent aE) {
-		if (aE.getActionCommand().equals(MIRROR_MODE_TEXT)) {
-			if (mirrorMode.isSelected()) {
-				// connect both panels for mirror mode
-				// evenPanel.setConnectedMerge(oddPanel);
-				// oddPanel.setConnectedMerge(evenPanel);
-			} else {
-				// disconnect them
-				// evenPanel.setConnectedMerge(null);
-				// oddPanel.setConnectedMerge(null);
+		if (aE.getActionCommand().equals(LOAD)) {
+			origFile = loadPDF();
+			if (origFile != null) {
+				actionBtn.setEnabled(false);
+				progressBar.setString("loading PDF");
+				setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+				clusterTask = new ClusterPagesTask(origFile);
+				clusterTask.addPropertyChangeListener(this);
+				clusterTask.execute();
 			}
-		} else if (aE.getActionCommand().equals(LOAD_FILE_TEXT)) {
-			mirrorMode.setEnabled(false);
-			// evenPanel.setEnabled(false);
-			// oddPanel.setEnabled(false);
-			menu.setEnabled(false);
+		} else if (aE.getActionCommand().equals(CROP)) {
+			actionBtn.setEnabled(false);
 			progressBar.setString("loading PDF");
 			setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-			File origPdf = loadPDF();
-			clusterTask = new ClusterPagesTask(origPdf);
-			clusterTask.addPropertyChangeListener(this);
-			clusterTask.execute();
+			cropTask = new CropPDFTask(origFile);
+			cropTask.addPropertyChangeListener(this);
+			cropTask.execute();
 		}
 	}
 
 	private class CropPDFTask extends SwingWorker<Void, Void> {
 		private File pdfFile;
-		float[] ratiosEven;
-		float[] ratiosOdd;
 
-		public CropPDFTask(File pdfFile, float[] ratiosEven, float[] ratiosOdd) {
+		public CropPDFTask(File pdfFile) {
 			super();
 			this.pdfFile = pdfFile;
-			this.ratiosEven = ratiosEven;
-			this.ratiosOdd = ratiosOdd;
 		}
 
 		@Override
 		protected void done() {
-			cropBtn.setEnabled(true);
+			actionBtn.setEnabled(true);
+			actionBtn.setText(LOAD);
+			progressBar.setValue(0);
+			progressBar.setString("");
+			setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
 		}
 
 		@Override
@@ -210,95 +192,58 @@ public class Briss extends JFrame implements ActionListener,
 				PdfStamper stamper = new PdfStamper(reader,
 						new FileOutputStream("out.pdf"));
 
-				int n = reader.getNumberOfPages();
+				int pageCount = reader.getNumberOfPages();
 				PdfDictionary pageDict;
 				PdfArray old_mediabox, new_mediabox, old_cropbox, new_cropbox;
 				PdfNumber value;
-				BaseFont font = BaseFont.createFont(BaseFont.HELVETICA,
-						BaseFont.WINANSI, BaseFont.NOT_EMBEDDED);
-				PdfContentByte directcontent;
-				for (int i = 1; i <= n; i++) {
-					pageDict = reader.getPageN(i);
+				PdfNumber x1, y1, x2, y2;
+				for (int pageNumber = 1; pageNumber <= pageCount; pageNumber++) {
+					PDFPageClusterInfo clusterInfo = clustersMapping[pageNumber - 1];
+					// /(x1, y1, x2, y2) left bottom, right top
+
+					pageDict = reader.getPageN(pageNumber);
 					new_mediabox = new PdfArray();
 					old_mediabox = pageDict.getAsArray(PdfName.MEDIABOX);
-					value = (PdfNumber) old_mediabox.getAsNumber(0);
-					new_mediabox.add(new PdfNumber(value.floatValue() - 300));
-					value = (PdfNumber) old_mediabox.getAsNumber(1);
-					new_mediabox.add(new PdfNumber(value.floatValue() - 300));
-					value = (PdfNumber) old_mediabox.getAsNumber(2);
-					new_mediabox.add(new PdfNumber(value.floatValue() + 300));
-					value = (PdfNumber) old_mediabox.getAsNumber(3);
-					new_mediabox.add(new PdfNumber(value.floatValue() + 300));
-					pageDict.put(PdfName.MEDIABOX, new_mediabox);
+					x1 = (PdfNumber) old_mediabox.getAsNumber(0);
+					y1 = (PdfNumber) old_mediabox.getAsNumber(1);
+					x2 = (PdfNumber) old_mediabox.getAsNumber(2);
+					y2 = (PdfNumber) old_mediabox.getAsNumber(3);
+					int mediaWidth = x2.intValue() - x1.intValue();
+					int mediaHeight = y2.intValue() - y1.intValue();
+
+					if (clusterInfo.getRatios() != null) {
+						int x1n = (int) (x1.intValue() + (mediaWidth * clusterInfo
+								.getRatios()[0]));
+						int y1n = (int) (y1.intValue() + (mediaHeight * clusterInfo
+								.getRatios()[2]));
+						int x2n = (int) (x1.intValue() + (mediaWidth * clusterInfo
+								.getRatios()[1]));
+						int y2n = (int) (y1.intValue() + (mediaHeight * clusterInfo
+								.getRatios()[3]));
+						new_mediabox.add(new PdfNumber(x1n));
+						new_mediabox.add(new PdfNumber(y1n));
+						new_mediabox.add(new PdfNumber(x2n));
+						new_mediabox.add(new PdfNumber(y2n));
+						pageDict.put(PdfName.MEDIABOX, new_mediabox);
+
+					}
 
 					new_cropbox = new PdfArray();
 					old_cropbox = pageDict.getAsArray(PdfName.CROPBOX);
-					value = (PdfNumber) old_cropbox.getAsNumber(0);
-					new_cropbox.add(new PdfNumber(value.floatValue() + 50));
-					value = (PdfNumber) old_cropbox.getAsNumber(1);
-					new_cropbox.add(new PdfNumber(value.floatValue() + 50));
-					value = (PdfNumber) old_cropbox.getAsNumber(2);
-					new_cropbox.add(new PdfNumber(value.floatValue() - 50));
-					value = (PdfNumber) old_cropbox.getAsNumber(3);
-					new_cropbox.add(new PdfNumber(value.floatValue() - 50));
-					pageDict.put(PdfName.CROPBOX, new_cropbox);
+					if (old_cropbox != null) {
+						value = (PdfNumber) old_cropbox.getAsNumber(0);
+						new_cropbox.add(new PdfNumber(value.floatValue() + 50));
+						value = (PdfNumber) old_cropbox.getAsNumber(1);
+						new_cropbox.add(new PdfNumber(value.floatValue() + 50));
+						value = (PdfNumber) old_cropbox.getAsNumber(2);
+						new_cropbox.add(new PdfNumber(value.floatValue() - 50));
+						value = (PdfNumber) old_cropbox.getAsNumber(3);
+						new_cropbox.add(new PdfNumber(value.floatValue() - 50));
+						pageDict.put(PdfName.CROPBOX, new_cropbox);
+					}
 
-					//
-					// If Not
-					// pageDict.GetAsArray(iTextSharp.text.pdf.PdfName.CROPBOX)
-					// Is
-					// Nothing
-					// Then
-					// newCropBox = New iTextSharp.text.pdf.PdfArray
-					// oldCropBox =
-					// pageDict.GetAsArray(iTextSharp.text.pdf.PdfName.CROPBOX).ArrayList
-					// value = CType(oldCropBox(0),
-					// iTextSharp.text.pdf.PdfNumber)
-					// newCropBox.Add(New PdfNumber(value.FloatValue() - 36))
-					// value = CType(oldCropBox(1),
-					// iTextSharp.text.pdf.PdfNumber)
-					// newCropBox.Add(New PdfNumber(value.FloatValue() - 36))
-					// value = CType(oldCropBox(2),
-					// iTextSharp.text.pdf.PdfNumber)
-					// newCropBox.Add(New PdfNumber(value.FloatValue() + 36))
-					// value = CType(oldCropBox(3),
-					// iTextSharp.text.pdf.PdfNumber)
-					// newCropBox.Add(New PdfNumber(value.FloatValue() + 36))
-					//
-					// pageDict.Put(iTextSharp.text.pdf.PdfName.CROPBOX,
-					// newCropBox)
-					// End If
-					//
-					// If Not
-					// pageDict.GetAsArray(iTextSharp.text.pdf.PdfName.CROPBOX)
-					// Is Nothing
-					// Then
-					// newCropBox = New iTextSharp.text.pdf.PdfArray
-					// oldCropBox =
-					// pageDict.GetAsArray(iTextSharp.text.pdf.PdfName.CROPBOX).ArrayList
-					// value = CType(oldCropBox(0),
-					// iTextSharp.text.pdf.PdfNumber)
-					// newCropBox.Add(New PdfNumber(value.FloatValue() - 36))
-					// value = CType(oldCropBox(1),
-					// iTextSharp.text.pdf.PdfNumber)
-					// newCropBox.Add(New PdfNumber(value.FloatValue() - 36))
-					// value = CType(oldCropBox(2),
-					// iTextSharp.text.pdf.PdfNumber)
-					// newCropBox.Add(New PdfNumber(value.FloatValue() + 36))
-					// value = CType(oldCropBox(3),
-					// iTextSharp.text.pdf.PdfNumber)
-					// newCropBox.Add(New PdfNumber(value.FloatValue() + 36))
-					//
-					// pageDict.Put(iTextSharp.text.pdf.PdfName.CROPBOX,
-					// newCropBox)
-					// End If
-
-					directcontent = stamper.getOverContent(i);
-					directcontent.beginText();
-					directcontent.setFontAndSize(font, 12);
-					directcontent.showTextAligned(Element.ALIGN_LEFT, "TEST",
-							0, -18, 0);
-					directcontent.endText();
+					int percent = (int) ((pageNumber / (float) clustersMapping.length) * 100);
+					setProgress(percent);
 				}
 				stamper.close();
 			} catch (IOException e) {
@@ -316,8 +261,7 @@ public class Briss extends JFrame implements ActionListener,
 			SwingWorker<PDFPageClusterInfo[], Void> {
 
 		private File pdfFile;
-		private PDFPageClusterInfo[] clustersMapping;
-		private HashMap<PDFPageClusterInfo, List<Integer>> clusterToPageSet;
+
 		private int pageCount;
 
 		public ClusterPagesTask(File pdfFile) {
@@ -349,19 +293,18 @@ public class Briss extends JFrame implements ActionListener,
 			setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
 			int yposition = 0;
 			for (PDFPageClusterInfo cluster : clusterToPageSet.keySet()) {
-				MergedPanel p = new MergedPanel();
-				p.setImage(cluster.getPreviewImage());
+				MergedPanel p = new MergedPanel(cluster);
 				GridBagConstraints c = new GridBagConstraints();
-				c.gridx = yposition++;
-				c.gridy = 0;
-				add(p, c);
+				c.gridx = 0;
+				c.gridy = yposition++;
+				c.anchor = GridBagConstraints.CENTER;
+				previewPanel.add(p, c);
 			}
-			previewPanel.setVisible(true);
 			progressBar
 					.setString("PDF loaded - Select crop size and press crop");
+			actionBtn.setEnabled(true);
 			progressBar.setValue(0);
-			mirrorMode.setEnabled(true);
-			menu.setEnabled(true);
+			actionBtn.setText(CROP);
 			pack();
 		}
 
@@ -401,13 +344,17 @@ public class Briss extends JFrame implements ActionListener,
 						pageNumbers.add(i);
 						clusterToPageSet.put(tmpCluster, pageNumbers);
 					}
-					clustersMapping[i-1] = tmpCluster;
 
 					pdf.getReader().close();
 					doc = null;
 					setProgress(0);
 					int percent = (int) ((i / (float) pageCount) * 100);
 					setProgress(percent);
+				}
+				for (PDFPageClusterInfo key : clusterToPageSet.keySet()) {
+					for (Integer pageNumber : clusterToPageSet.get(key)) {
+						clustersMapping[pageNumber - 1] = key;
+					}
 				}
 
 			} catch (Exception e) {
@@ -483,7 +430,7 @@ public class Briss extends JFrame implements ActionListener,
 				for (int k = 0; k < cluster.getPreviewImage().getHeight(); ++k) {
 					for (int j = 0; j < cluster.getPreviewImage().getWidth(); ++j) {
 						raster.setSample(j, k, 0, Math.round(imageData[j][k]
-								/ (cluster.getPagesToMerge().size() / 2)));
+								/ (cluster.getPagesToMerge().size())));
 					}
 				}
 				cluster.getPreviewImage().setData(raster);

@@ -1,4 +1,4 @@
-package at.laborg.jpdfcrop;
+package at.laborg.briss;
 
 import java.awt.AlphaComposite;
 import java.awt.Color;
@@ -10,10 +10,7 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
 
-import javax.imageio.ImageIO;
 import javax.swing.JPanel;
 
 @SuppressWarnings("serial")
@@ -27,19 +24,33 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 	private static Composite composite = AlphaComposite.getInstance(
 			AlphaComposite.SRC_OVER, .2f);
 	private MergedPanel connectedMerge;
+	private PDFPageClusterInfo cluster;
 
-	public MergedPanel() {
+	public MergedPanel(PDFPageClusterInfo cluster) {
 		super();
-		try {
-			img = ImageIO.read(new File("res/nullImage.png"));
-			this
-					.setPreferredSize(new Dimension(img.getWidth(), img
-							.getHeight()));
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+		this.cluster = cluster;
+		this.img = cluster.getPreviewImage();
+		setPreferredSize(new Dimension(img.getWidth(), img.getHeight()));
 		addMouseMotionListener(this);
 		addMouseListener(this);
+		setToolTipText(createInfoString(cluster));
+	}
+
+	private String createInfoString(PDFPageClusterInfo cluster) {
+		StringBuilder sb = new StringBuilder();
+		sb.append("<html>");
+		sb.append(cluster.isEvenPage() ? "Even " : "Odd ").append("page<br>");
+		sb.append(cluster.getAllPages().size() + " pages: ");
+		int pagecounter = 0;
+		for (Integer pageNumber : cluster.getAllPages()) {
+			sb.append(pageNumber + " ");
+			if (pagecounter++ > 10) {
+				pagecounter = 0;
+				sb.append("<br>");
+			}
+		}
+		sb.append("</html>");
+		return sb.toString();
 	}
 
 	@Override
@@ -106,11 +117,11 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 	public void mousePressed(MouseEvent mE) {
 		zoomXStart = mE.getX();
 		zoomYStart = mE.getY();
-
 	}
 
 	@Override
 	public void mouseReleased(MouseEvent arg0) {
+		cluster.setRatios(getCutRatios());
 	}
 
 	public void setConnectedMerge(MergedPanel connectedMerge) {
@@ -126,47 +137,41 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 		repaint();
 	}
 
-	public void setImage(BufferedImage img) {
-		this.img = img;
-		setPreferredSize(new Dimension(img.getWidth(), img.getHeight()));
-		repaint();
-	}
-
 	/**
 	 * creates the crop ratios from the user selection. 0 = xStart 1 = xEnd 2 =
 	 * yStart 3 = yEnd
 	 * 
 	 * @return the cropped ratios or null if to small
 	 */
-	public float[] getCutRatios() {
-		int x1,x2,y1,y2;
+	private float[] getCutRatios() {
+		int x1, x2, y1, y2;
 		if (zoomXStart > zoomXEnd) {
 			x1 = zoomXEnd;
 			x2 = zoomXStart;
 		} else {
 			x1 = zoomXStart;
-			x2 = zoomXEnd;			
+			x2 = zoomXEnd;
 		}
 		if (zoomYStart > zoomYEnd) {
 			y1 = zoomYEnd;
 			y2 = zoomYStart;
 		} else {
 			y1 = zoomYStart;
-			y2 = zoomYEnd;			
+			y2 = zoomYEnd;
 		}
-		if ((x2-x1) < MINIMUM_WIDTH) {
+		if ((x2 - x1) < MINIMUM_WIDTH) {
 			return null;
 		}
-		if ((y2-y1) < MINIMUM_HEIGHT) {
+		if ((y2 - y1) < MINIMUM_HEIGHT) {
 			return null;
 		}
-		
+
 		float[] ratios = new float[4];
-		ratios[0] = img.getWidth()/(float)x1;
-		ratios[1] = img.getWidth()/(float)x2;
-		ratios[2] = img.getHeight()/(float)y1;
-		ratios[3] = img.getHeight()/(float)y2;
-		
+		ratios[0] = (float) x1 / img.getWidth();
+		ratios[1] = (float) x2 / img.getWidth();
+		ratios[2] = (float) y1 / img.getHeight();
+		ratios[3] = (float) y2 / img.getHeight();
+
 		return ratios;
 	}
 

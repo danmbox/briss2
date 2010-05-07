@@ -1,4 +1,4 @@
-package at.laborg.jpdfcrop;
+package at.laborg.briss;
 
 public class PageCluster {
 

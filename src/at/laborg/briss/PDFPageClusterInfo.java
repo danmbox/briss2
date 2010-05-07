@@ -1,4 +1,4 @@
-package at.laborg.jpdfcrop;
+package at.laborg.briss;
 
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
@@ -6,9 +6,11 @@ import java.util.List;
 
 public class PDFPageClusterInfo {
 
-	private final static int MAX_MERGE_PAGES = 10;
+	private final static int MAX_MERGE_PAGES = 20;
 	private List<Integer> pagesToMerge;
+	private List<Integer> allPages;
 	private BufferedImage previewImage;
+	private float[] ratios;
 
 	private boolean evenPage;
 	private int pageWidth;
@@ -28,6 +30,19 @@ public class PDFPageClusterInfo {
 
 	public BufferedImage getPreviewImage() {
 		return previewImage;
+	}
+
+	/**
+	 * returns the ratio to crop the page
+	 * x1,x2,y1,y2, origin = top,left
+	 * @return
+	 */
+	public float[] getRatios() {
+		return ratios;
+	}
+
+	public void setRatios(float[] ratios) {
+		this.ratios = ratios;
 	}
 
 	@Override
@@ -71,6 +86,7 @@ public class PDFPageClusterInfo {
 	}
 
 	public void choosePagesToMerge(List<Integer> pages) {
+		allPages = pages;
 		if (pages.size() < MAX_MERGE_PAGES) {
 			// use all pages
 			pagesToMerge = pages;
@@ -84,7 +100,10 @@ public class PDFPageClusterInfo {
 				totalStepped += stepWidth;
 			}
 		}
+	}
 
+	public List<Integer> getAllPages() {
+		return allPages;
 	}
 
 	public List<Integer> getPagesToMerge() {
