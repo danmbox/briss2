@@ -16,6 +16,7 @@
  * You should have received a copy of the GNU General Public License along with
  * BRISS. If not, see http://www.gnu.org/licenses/.
  */
+ 
 ################################################
 BRISS - BRight Snippet Sire 
 ################################################
@@ -28,10 +29,13 @@ General
  * Author: Gerhard Aigner (gerhard.aigner@gmail.com
  * Requirements: Java 6
  * Operating systems: Windows, Linux, MacOSX
+ * This software uses two libraries to render and crop PDF files: 
+  * itext (AGPLv3) http://itextpdf.com/ 
+  * multivalent (GPLv3) http://multivalent.sourceforge.net/
 
 
 ########################
-Howto run the software
+Starting the application
 ########################
 You can run the application by executing following command in terminal:
 
