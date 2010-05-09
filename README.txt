@@ -21,6 +21,11 @@
 BRISS - BRight Snippet Sire 
 ################################################
 
+This is a small application to crop PDF files. It helps the user to decide what 
+should be cropped by creating a overlay of similar pages (=>all pages within a pdf
+ having the same size, orientation(even/odd)). 
+
+
 ########################
 General
 ########################
