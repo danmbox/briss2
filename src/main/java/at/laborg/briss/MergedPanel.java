@@ -1,3 +1,21 @@
+// $Id$
+/**
+ * Copyright 2010 Gerhard Aigner
+ * 
+ * This file is part of BRISS.
+ * 
+ * BRISS is free software: you can redistribute it and/or modify it under the
+ * terms of the GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option) any later
+ * version.
+ * 
+ * BRISS is distributed in the hope that it will be useful, but WITHOUT ANY
+ * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+ * A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License along with
+ * BRISS. If not, see http://www.gnu.org/licenses/.
+ */
 package at.laborg.briss;
 
 import java.awt.AlphaComposite;
@@ -121,7 +139,7 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 
 	@Override
 	public void mouseReleased(MouseEvent arg0) {
-		cluster.setRatios(getCutRatios());
+		cluster.setRatios(getCutRatiosForPdf());
 	}
 
 	public void setConnectedMerge(MergedPanel connectedMerge) {
@@ -143,8 +161,9 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 	 * 
 	 * @return the cropped ratios or null if to small
 	 */
-	private float[] getCutRatios() {
+	private float[] getCutRatiosForPdf() {
 		int x1, x2, y1, y2;
+		// x1 should always be smaller than x2
 		if (zoomXStart > zoomXEnd) {
 			x1 = zoomXEnd;
 			x2 = zoomXStart;
@@ -152,6 +171,7 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 			x1 = zoomXStart;
 			x2 = zoomXEnd;
 		}
+		// y1 should always be smaller than y2
 		if (zoomYStart > zoomYEnd) {
 			y1 = zoomYEnd;
 			y2 = zoomYStart;
@@ -159,6 +179,9 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 			y1 = zoomYStart;
 			y2 = zoomYEnd;
 		}
+
+		// TODO check for maximum and minimum
+
 		if ((x2 - x1) < MINIMUM_WIDTH) {
 			return null;
 		}
@@ -167,10 +190,14 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 		}
 
 		float[] ratios = new float[4];
+		// x bottom left
 		ratios[0] = (float) x1 / img.getWidth();
-		ratios[1] = (float) x2 / img.getWidth();
-		ratios[2] = (float) y1 / img.getHeight();
-		ratios[3] = (float) y2 / img.getHeight();
+		// y bottom left
+		ratios[1] = (float) (img.getHeight() - y2) / img.getHeight();
+		// x top right
+		ratios[2] = (float) x2 / img.getWidth();
+		// y top right
+		ratios[3] = (float) (img.getHeight() - y1) / img.getHeight();
 
 		return ratios;
 	}

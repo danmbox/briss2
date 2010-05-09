@@ -1,10 +1,31 @@
+// $Id$
+/**
+ * Copyright 2010 Gerhard Aigner
+ * 
+ * This file is part of BRISS.
+ * 
+ * BRISS is free software: you can redistribute it and/or modify it under the
+ * terms of the GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option) any later
+ * version.
+ * 
+ * BRISS is distributed in the hope that it will be useful, but WITHOUT ANY
+ * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+ * A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License along with
+ * BRISS. If not, see http://www.gnu.org/licenses/.
+ */
 package at.laborg.briss;
 
+import java.awt.Color;
 import java.awt.Cursor;
+import java.awt.Desktop;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.awt.Insets;
 import java.awt.RenderingHints;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -60,7 +81,7 @@ public class Briss extends JFrame implements ActionListener,
 
 	private JPanel previewPanel;
 	private JProgressBar progressBar;
-	private JButton actionBtn;
+	private JButton loadBtn, cropBtn;
 	private ClusterPagesTask clusterTask;
 	private CropPDFTask cropTask;
 	private File origFile = null;
@@ -74,7 +95,7 @@ public class Briss extends JFrame implements ActionListener,
 		init();
 	}
 
-	private File loadPDF(String recommendation) {
+	private File loadPDF(String recommendation, boolean saveDialog) {
 
 		JFileChooser fc = new JFileChooser();
 		if (recommendation != null) {
@@ -95,7 +116,13 @@ public class Briss extends JFrame implements ActionListener,
 				return null;
 			}
 		});
-		int retval = fc.showOpenDialog(this);
+		int retval;
+		if (saveDialog) {
+			retval = fc.showSaveDialog(this);
+		} else {
+			retval = fc.showOpenDialog(this);
+		}
+
 		if (retval == JFileChooser.APPROVE_OPTION) {
 			return fc.getSelectedFile();
 		}
@@ -110,11 +137,18 @@ public class Briss extends JFrame implements ActionListener,
 		previewPanel = new JPanel();
 		previewPanel.setLayout(new GridBagLayout());
 		previewPanel.setEnabled(true);
+		previewPanel.setBackground(Color.BLACK);
 
-		actionBtn = new JButton(LOAD);
-		actionBtn.setEnabled(true);
-		actionBtn.setPreferredSize(new Dimension(300, 30));
-		actionBtn.addActionListener(this);
+		loadBtn = new JButton(LOAD);
+		loadBtn.setEnabled(true);
+		loadBtn.setPreferredSize(new Dimension(300, 30));
+		loadBtn.addActionListener(this);
+
+		cropBtn = new JButton(CROP);
+		cropBtn.setEnabled(true);
+		cropBtn.setPreferredSize(new Dimension(300, 30));
+		cropBtn.addActionListener(this);
+		cropBtn.setEnabled(false);
 
 		progressBar = new JProgressBar(0, 100);
 		progressBar.setStringPainted(true);
@@ -124,6 +158,7 @@ public class Briss extends JFrame implements ActionListener,
 		GridBagConstraints c = new GridBagConstraints();
 		c.gridx = 0;
 		c.gridy = 0;
+		c.gridwidth = 2;
 		c.fill = GridBagConstraints.BOTH;
 		c.weightx = 1;
 		c.weighty = 1;
@@ -133,10 +168,18 @@ public class Briss extends JFrame implements ActionListener,
 		c.gridx = 0;
 		c.gridy = 1;
 		c.fill = GridBagConstraints.BOTH;
-		add(actionBtn, c);
+		c.weightx = 0.5;
+		add(loadBtn, c);
+		c = new GridBagConstraints();
+		c.gridx = 1;
+		c.gridy = 1;
+		c.fill = GridBagConstraints.BOTH;
+		c.weightx = 0.5;
+		add(cropBtn, c);
 		c = new GridBagConstraints();
 		c.gridx = 0;
 		c.gridy = 2;
+		c.gridwidth = 2;
 		c.fill = GridBagConstraints.BOTH;
 		add(progressBar, c);
 		pack();
@@ -151,9 +194,12 @@ public class Briss extends JFrame implements ActionListener,
 	@Override
 	public void actionPerformed(ActionEvent aE) {
 		if (aE.getActionCommand().equals(LOAD)) {
-			origFile = loadPDF(null);
+			// TODO clear all previously used things
+			origFile = loadPDF(null, false);
 			if (origFile != null) {
-				actionBtn.setEnabled(false);
+				clustersMapping = null;
+				clusterToPageSet = null;
+				previewPanel.removeAll();
 				progressBar.setString("loading PDF");
 				setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
 				clusterTask = new ClusterPagesTask();
@@ -166,7 +212,7 @@ public class Briss extends JFrame implements ActionListener,
 			String recommendedName = origName.substring(0,
 					origName.length() - 4)
 					+ "_cropped.pdf";
-			croppedFile = loadPDF(recommendedName);
+			croppedFile = loadPDF(recommendedName, true);
 			if (!croppedFile.exists()) {
 				try {
 					croppedFile.createNewFile();
@@ -174,7 +220,6 @@ public class Briss extends JFrame implements ActionListener,
 					// TODO show dialog
 				}
 			}
-			actionBtn.setEnabled(false);
 			progressBar.setString("loading PDF");
 			setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
 			cropTask = new CropPDFTask();
@@ -191,12 +236,16 @@ public class Briss extends JFrame implements ActionListener,
 
 		@Override
 		protected void done() {
-			actionBtn.setEnabled(true);
-			actionBtn.setText(LOAD);
 			progressBar.setValue(0);
 			progressBar.setString("");
+			if (Desktop.isDesktopSupported()) {
+				try {
+					Desktop.getDesktop().open(croppedFile);
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
 			setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
-			System.exit(0);
 		}
 
 		@Override
@@ -221,9 +270,11 @@ public class Briss extends JFrame implements ActionListener,
 					boxList.add(pageDict.getAsArray(PdfName.CROPBOX));
 					boxList.add(pageDict.getAsArray(PdfName.TRIMBOX));
 					boxList.add(pageDict.getAsArray(PdfName.BLEEDBOX));
+					int rotation = pageDict.getAsNumber(PdfName.ROTATE)
+							.intValue();
 
 					PdfArray scaledBox = calculateScaledBox(boxList,
-							clusterInfo.getRatios());
+							clusterInfo.getRatios(), rotation);
 
 					pageDict.put(PdfName.CROPBOX, scaledBox);
 					pageDict.put(PdfName.MEDIABOX, scaledBox);
@@ -246,13 +297,17 @@ public class Briss extends JFrame implements ActionListener,
 	}
 
 	// TODO change ratios to pdf format
-	/** ratios = x1,x2, y1,y2
-	 * 	 pdf orientation (x1, y1, x2, y2) left bottom, right top
+	/**
+	 * ratios = x1,x2, y1,y2 pdf orientation (x1, y1, x2, y2) left bottom, right
+	 * top
+	 * 
 	 * @param boxes
 	 * @param ratios
+	 * @param rotation
 	 * @return
 	 */
-	private PdfArray calculateScaledBox(List<PdfArray> boxes, float[] ratios) {
+	private PdfArray calculateScaledBox(List<PdfArray> boxes, float[] ratios,
+			int rotation) {
 		if (ratios == null || boxes.size() == 0) {
 			return null;
 		}
@@ -278,6 +333,9 @@ public class Briss extends JFrame implements ActionListener,
 			return null; // now useable box was found
 		}
 
+		// pdf pages can be rotated, so adjust the cutratios according to the
+		// ROTATE from the pdf pagedict
+
 		// use smallest box as basis for calculation
 		PdfNumber x1 = (PdfNumber) boxes.get(smallestIndex).getAsNumber(0);
 		PdfNumber y1 = (PdfNumber) boxes.get(smallestIndex).getAsNumber(1);
@@ -288,16 +346,16 @@ public class Briss extends JFrame implements ActionListener,
 
 		// create a new pdfbox to return
 		int x1Scaled = (int) (x1.intValue() + (boxWidth * ratios[0]));
-		int y1Scaled = (int) (y1.intValue() + (boxHeight * (1 - ratios[3])));
-		int x2Scaled = (int) (x1.intValue() + (boxWidth * ratios[1]));
-		int y2Scaled = (int) (y1.intValue() + (boxHeight * (1 - ratios[2])));
-		
+		int y1Scaled = (int) (y1.intValue() + (boxHeight * ratios[1]));
+		int x2Scaled = (int) (x1.intValue() + (boxWidth * ratios[2]));
+		int y2Scaled = (int) (y1.intValue() + (boxHeight * ratios[3]));
+
 		PdfArray scaledBox = new PdfArray();
 		scaledBox.add(new PdfNumber(x1Scaled));
 		scaledBox.add(new PdfNumber(y1Scaled));
 		scaledBox.add(new PdfNumber(x2Scaled));
 		scaledBox.add(new PdfNumber(y2Scaled));
-		
+
 		return scaledBox;
 	}
 
@@ -339,13 +397,13 @@ public class Briss extends JFrame implements ActionListener,
 				c.gridx = 0;
 				c.gridy = yposition++;
 				c.anchor = GridBagConstraints.CENTER;
+				c.insets = new Insets(4, 0, 4, 0);
 				previewPanel.add(p, c);
 			}
 			progressBar
 					.setString("PDF loaded - Select crop size and press crop");
-			actionBtn.setEnabled(true);
+			cropBtn.setEnabled(true);
 			progressBar.setValue(0);
-			actionBtn.setText(CROP);
 			pack();
 		}
 

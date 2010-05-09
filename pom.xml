@@ -4,11 +4,11 @@
 	<!--
 		mvn install:install-file -DgroupId=multivalent
 		-DartifactId=multivalent -Dpackaging=jar -Dversion=20091027
-		-Dfile=/home/gerhard/arbeit/workspace_ab_v2/brissold/lib/Multivalent20091027.jar
+		-Dfile=/dirtodownload/Multivalent20091027.jar
 	-->
 	<groupId>at.laborg</groupId>
 	<artifactId>briss</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>0.0.1</version>
 	<packaging>pom</packaging>
 
 	<name>briss</name>
@@ -31,7 +31,7 @@
 				<version>2.2-beta-5</version>
 				<configuration>
 					<descriptorRefs>
-						<descriptorRef>jar-with-dependencies</descriptorRef>
+						<descriptorRef>bin</descriptorRef>
 					</descriptorRefs>
 					<archive>
 						<manifest>
