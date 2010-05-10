@@ -35,16 +35,15 @@ import javax.swing.JPanel;
 public class MergedPanel extends JPanel implements MouseMotionListener,
 		MouseListener {
 
-	private static final int MINIMUM_WIDTH = 30;
-	private static final int MINIMUM_HEIGHT = 40;
+	private static final int MINIMUM_WIDTH = 20;
+	private static final int MINIMUM_HEIGHT = 20;
 	private BufferedImage img;
 	private int zoomXStart, zoomXEnd, zoomYStart, zoomYEnd;
 	private static Composite composite = AlphaComposite.getInstance(
 			AlphaComposite.SRC_OVER, .2f);
-	private MergedPanel connectedMerge;
-	private PDFPageClusterInfo cluster;
+	private PDFPageCluster cluster;
 
-	public MergedPanel(PDFPageClusterInfo cluster) {
+	public MergedPanel(PDFPageCluster cluster) {
 		super();
 		this.cluster = cluster;
 		this.img = cluster.getPreviewImage();
@@ -54,7 +53,7 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 		setToolTipText(createInfoString(cluster));
 	}
 
-	private String createInfoString(PDFPageClusterInfo cluster) {
+	private String createInfoString(PDFPageCluster cluster) {
 		StringBuilder sb = new StringBuilder();
 		sb.append("<html>");
 		sb.append(cluster.isEvenPage() ? "Even " : "Odd ").append("page<br>");
@@ -108,10 +107,6 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 	public void mouseDragged(MouseEvent mE) {
 		zoomXEnd = mE.getX();
 		zoomYEnd = mE.getY();
-		if (connectedMerge != null) {
-			connectedMerge.drawResizeWindow(zoomXStart, zoomXEnd, zoomYStart,
-					zoomYEnd);
-		}
 		repaint();
 	}
 
@@ -140,10 +135,6 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 	@Override
 	public void mouseReleased(MouseEvent arg0) {
 		cluster.setRatios(getCutRatiosForPdf());
-	}
-
-	public void setConnectedMerge(MergedPanel connectedMerge) {
-		this.connectedMerge = connectedMerge;
 	}
 
 	public void drawResizeWindow(int zoomXStart, int zoomXEnd, int zoomYStart,
@@ -180,7 +171,19 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 			y2 = zoomYEnd;
 		}
 
-		// TODO check for maximum and minimum
+		// check for maximum and minimum
+		if (x1 < 0) {
+			x1 = 0;
+		}
+		if (x2 > img.getWidth()) {
+			x2 = img.getWidth();
+		}
+		if (y1<0) {
+			y1=0;
+		}
+		if (y2 > img.getWidth()) {
+			y2 = img.getWidth();
+		}
 
 		if ((x2 - x1) < MINIMUM_WIDTH) {
 			return null;

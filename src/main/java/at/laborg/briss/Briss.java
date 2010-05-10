@@ -62,7 +62,6 @@ import multivalent.Behavior;
 import multivalent.Context;
 import multivalent.Document;
 import multivalent.Node;
-import multivalent.ParseException;
 import multivalent.std.adaptor.pdf.PDF;
 
 /**
@@ -77,8 +76,8 @@ public class Briss extends JFrame implements ActionListener,
 	private static final String LOAD = "Load File";
 	private static final String CROP = "Crop PDF";
 
-	private PDFPageClusterInfo[] clustersMapping;
-	private HashMap<PDFPageClusterInfo, List<Integer>> clusterToPageSet;
+	private PDFPageCluster[] clustersMapping;
+	private HashMap<PDFPageCluster, List<Integer>> clusterToPageSet;
 
 	private JPanel previewPanel;
 	private JProgressBar progressBar;
@@ -196,8 +195,9 @@ public class Briss extends JFrame implements ActionListener,
 	public void actionPerformed(ActionEvent aE) {
 		if (aE.getActionCommand().equals(LOAD)) {
 			// TODO clear all previously used things
-			origFile = loadPDF(null, false);
-			if (origFile != null) {
+			File loadFile = loadPDF(null, false);
+			if (loadFile != null) {
+				origFile = loadFile;
 				clustersMapping = null;
 				clusterToPageSet = null;
 				previewPanel.removeAll();
@@ -262,7 +262,10 @@ public class Briss extends JFrame implements ActionListener,
 				int pageCount = reader.getNumberOfPages();
 				PdfDictionary pageDict;
 				for (int pageNumber = 1; pageNumber <= pageCount; pageNumber++) {
-					PDFPageClusterInfo clusterInfo = clustersMapping[pageNumber - 1];
+					PDFPageCluster clusterInfo = clustersMapping[pageNumber - 1];
+					// if no cop was selected do nothing
+					if (clusterInfo.getRatios() == null)
+						continue;
 
 					pageDict = reader.getPageN(pageNumber);
 
@@ -323,9 +326,10 @@ public class Briss extends JFrame implements ActionListener,
 			}
 		}
 		if (sBox == null) {
-			return null; // now useable box was found
+			return null; // no useable box was found
 		}
 
+		// rotate the ratios according to the rotation of the page
 		float[] rotRatios = rotateRatios(ratios, rotation);
 
 		// use smallest box as basis for calculation
@@ -370,38 +374,29 @@ public class Briss extends JFrame implements ActionListener,
 	}
 
 	private class ClusterPagesTask extends
-			SwingWorker<PDFPageClusterInfo[], Void> {
+			SwingWorker<PDFPageCluster[], Void> {
 
 		private int pageCount;
 
 		public ClusterPagesTask() {
 			super();
-			PDF pdf = (PDF) Behavior.getInstance("AdobePDF", "AdobePDF", null,
-					null, null);
-			progressBar.setString("Analysing PDF pages");
 			try {
-				pdf.setInput(origFile);
-				Document doc = new Document("doc", null, null);
-				pdf.parse(doc);
-				doc.clear();
-				pageCount = pdf.getReader().getPageCnt();
-				clustersMapping = new PDFPageClusterInfo[pageCount];
-				clusterToPageSet = new HashMap<PDFPageClusterInfo, List<Integer>>();
-			} catch (IOException e) {
+				PdfReader reader = new PdfReader(origFile.getAbsolutePath());
+				progressBar.setString("Analysing PDF pages");
+				pageCount = reader.getNumberOfPages();
+				clustersMapping = new PDFPageCluster[pageCount];
+				clusterToPageSet = new HashMap<PDFPageCluster, List<Integer>>();
+			} catch (IOException e1) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (ParseException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				e1.printStackTrace();
 			}
-
 		}
 
 		@Override
 		protected void done() {
 			setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
 			int yposition = 0;
-			for (PDFPageClusterInfo cluster : clusterToPageSet.keySet()) {
+			for (PDFPageCluster cluster : clusterToPageSet.keySet()) {
 				MergedPanel p = new MergedPanel(cluster);
 				GridBagConstraints c = new GridBagConstraints();
 				c.gridx = 0;
@@ -418,66 +413,51 @@ public class Briss extends JFrame implements ActionListener,
 		}
 
 		@Override
-		protected PDFPageClusterInfo[] doInBackground() throws Exception {
+		protected PDFPageCluster[] doInBackground() throws Exception {
+
+			PdfReader reader = new PdfReader(origFile.getAbsolutePath());
+
+			for (int i = 1; i <= pageCount; i++) {
+				Rectangle media = reader.getBoxSize(i, "media");
+				// create Cluster
+				PDFPageCluster tmpCluster = new PDFPageCluster(
+						i % 2 == 0, (int) media.getWidth(), (int) media
+								.getHeight());
+
+				if (clusterToPageSet.containsKey(tmpCluster)) {
+					// cluster exists
+					List<Integer> pageNumbers = clusterToPageSet
+							.get(tmpCluster);
+					pageNumbers.add(i);
+				} else {
+					// new Cluster
+					List<Integer> pageNumbers = new ArrayList<Integer>();
+					pageNumbers.add(i);
+					clusterToPageSet.put(tmpCluster, pageNumbers);
+				}
+				setProgress(0);
+				int percent = (int) ((i / (float) pageCount) * 100);
+				setProgress(percent);
+			}
+			for (PDFPageCluster key : clusterToPageSet.keySet()) {
+				for (Integer pageNumber : clusterToPageSet.get(key)) {
+					clustersMapping[pageNumber - 1] = key;
+				}
+			}
+
+			// now render the pages and create the preview images
 			PDF pdf = (PDF) Behavior.getInstance("AdobePDF", "AdobePDF", null,
 					null, null);
 			Document doc = new Document("doc", null, null);
-			try {
-
-				for (int i = 1; i <= pageCount; i++) {
-					pdf = (PDF) Behavior.getInstance("AdobePDF", "AdobePDF",
-							null, null, null);
-					pdf.setInput(origFile);
-					doc = new Document("doc", null, null);
-					pdf.parse(doc);
-					doc.clear();
-					doc.putAttr(Document.ATTR_PAGE, Integer.toString(i));
-					pdf.parse(doc);
-					Node top = doc.childAt(0);
-					doc.formatBeforeAfter(MAX_DOC_X, MAX_DOC_Y, null);
-					int w = top.bbox.width;
-					int h = top.bbox.height;
-
-					// create Cluster
-					PDFPageClusterInfo tmpCluster = new PDFPageClusterInfo(
-							i % 2 == 0, w, h);
-
-					if (clusterToPageSet.containsKey(tmpCluster)) {
-						// cluster exists
-						List<Integer> pageNumbers = clusterToPageSet
-								.get(tmpCluster);
-						pageNumbers.add(i);
-					} else {
-						// new Cluster
-						List<Integer> pageNumbers = new ArrayList<Integer>();
-						pageNumbers.add(i);
-						clusterToPageSet.put(tmpCluster, pageNumbers);
-					}
-
-					pdf.getReader().close();
-					doc = null;
-					setProgress(0);
-					int percent = (int) ((i / (float) pageCount) * 100);
-					setProgress(percent);
-				}
-				for (PDFPageClusterInfo key : clusterToPageSet.keySet()) {
-					for (Integer pageNumber : clusterToPageSet.get(key)) {
-						clustersMapping[pageNumber - 1] = key;
-					}
-				}
-
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
 
 			// for every cluster create a set of pages on which the preview will
 			// be based
-			for (PDFPageClusterInfo cluster : clusterToPageSet.keySet()) {
+			for (PDFPageCluster cluster : clusterToPageSet.keySet()) {
 				cluster.choosePagesToMerge(clusterToPageSet.get(cluster));
 			}
 
 			int clusterCounter = 1;
-			for (PDFPageClusterInfo cluster : clusterToPageSet.keySet()) {
+			for (PDFPageCluster cluster : clusterToPageSet.keySet()) {
 				WritableRaster raster = null;
 				double[][] imageData = null;
 				progressBar.setString("PDF analysed - creating cluster:"
@@ -497,14 +477,14 @@ public class Briss extends JFrame implements ActionListener,
 					pdf.parse(doc);
 
 					Node top = doc.childAt(0);
-
 					doc.formatBeforeAfter(MAX_DOC_X, MAX_DOC_Y, null);
-					BufferedImage img = new BufferedImage(cluster
-							.getPageWidth(), cluster.getPageHeight(),
+					int w = top.bbox.width;
+					int h = top.bbox.height;
+
+					BufferedImage img = new BufferedImage(w, h,
 							BufferedImage.TYPE_INT_RGB);
 					Graphics2D g = img.createGraphics();
-					g.setClip(0, 0, cluster.getPageWidth(), cluster
-							.getPageHeight());
+					g.setClip(0, 0, w, h);
 
 					g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
 							RenderingHints.VALUE_TEXT_ANTIALIAS_ON);

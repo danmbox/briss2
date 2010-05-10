@@ -22,7 +22,7 @@ import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
 
-public class PDFPageClusterInfo {
+public class PDFPageCluster {
 
 	private final static int MAX_MERGE_PAGES = 20;
 	private List<Integer> pagesToMerge;
@@ -34,7 +34,7 @@ public class PDFPageClusterInfo {
 	private int pageWidth;
 	private int pageHeight;
 
-	public PDFPageClusterInfo(boolean isEvenPage, int pageWidth, int pageHeight) {
+	public PDFPageCluster(boolean isEvenPage, int pageWidth, int pageHeight) {
 		super();
 		this.pageWidth = pageWidth;
 		this.pageHeight = pageHeight;
@@ -81,7 +81,7 @@ public class PDFPageClusterInfo {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		PDFPageClusterInfo other = (PDFPageClusterInfo) obj;
+		PDFPageCluster other = (PDFPageCluster) obj;
 		if (evenPage != other.evenPage)
 			return false;
 		if (pageHeight != other.pageHeight)
@@ -93,14 +93,6 @@ public class PDFPageClusterInfo {
 
 	public boolean isEvenPage() {
 		return evenPage;
-	}
-
-	public int getPageWidth() {
-		return pageWidth;
-	}
-
-	public int getPageHeight() {
-		return pageHeight;
 	}
 
 	public void choosePagesToMerge(List<Integer> pages) {
