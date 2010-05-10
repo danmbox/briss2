@@ -50,6 +50,7 @@ import javax.swing.SwingWorker;
 import javax.swing.filechooser.FileFilter;
 
 import com.lowagie.text.DocumentException;
+import com.lowagie.text.Rectangle;
 import com.lowagie.text.pdf.PdfArray;
 import com.lowagie.text.pdf.PdfDictionary;
 import com.lowagie.text.pdf.PdfName;
@@ -265,21 +266,26 @@ public class Briss extends JFrame implements ActionListener,
 
 					pageDict = reader.getPageN(pageNumber);
 
-					List<PdfArray> boxList = new ArrayList<PdfArray>();
-					boxList.add(pageDict.getAsArray(PdfName.MEDIABOX));
-					boxList.add(pageDict.getAsArray(PdfName.CROPBOX));
-					boxList.add(pageDict.getAsArray(PdfName.TRIMBOX));
-					boxList.add(pageDict.getAsArray(PdfName.BLEEDBOX));
-					int rotation = pageDict.getAsNumber(PdfName.ROTATE)
-							.intValue();
+					List<Rectangle> boxes = new ArrayList<Rectangle>();
+					boxes.add(reader.getBoxSize(pageNumber, "media"));
+					boxes.add(reader.getBoxSize(pageNumber, "crop"));
+					boxes.add(reader.getBoxSize(pageNumber, "trim"));
+					boxes.add(reader.getBoxSize(pageNumber, "bleed"));
+					int rotation = reader.getPageRotation(pageNumber);
 
-					PdfArray scaledBox = calculateScaledBox(boxList,
+					Rectangle scaledBox = calculateScaledRectangle(boxes,
 							clusterInfo.getRatios(), rotation);
 
-					pageDict.put(PdfName.CROPBOX, scaledBox);
-					pageDict.put(PdfName.MEDIABOX, scaledBox);
-					pageDict.put(PdfName.TRIMBOX, scaledBox);
-					pageDict.put(PdfName.BLEEDBOX, scaledBox);
+					PdfArray scaleBoxArray = new PdfArray();
+					scaleBoxArray.add(new PdfNumber(scaledBox.getLeft()));
+					scaleBoxArray.add(new PdfNumber(scaledBox.getBottom()));
+					scaleBoxArray.add(new PdfNumber(scaledBox.getRight()));
+					scaleBoxArray.add(new PdfNumber(scaledBox.getTop()));
+
+					pageDict.put(PdfName.CROPBOX, scaleBoxArray);
+					pageDict.put(PdfName.MEDIABOX, scaleBoxArray);
+					pageDict.put(PdfName.TRIMBOX, scaleBoxArray);
+					pageDict.put(PdfName.BLEEDBOX, scaleBoxArray);
 
 					int percent = (int) ((pageNumber / (float) clustersMapping.length) * 100);
 					setProgress(percent);
@@ -296,67 +302,71 @@ public class Briss extends JFrame implements ActionListener,
 		}
 	}
 
-	// TODO change ratios to pdf format
+	private Rectangle calculateScaledRectangle(List<Rectangle> boxes,
+			float[] ratios, int rotation) {
+		if (ratios == null || boxes.size() == 0) {
+			return null;
+		}
+		Rectangle sBox = null;
+		// find smallest box
+		float smallestSquare = Float.MAX_VALUE;
+		for (Rectangle box : boxes) {
+			if (box != null) {
+				if (sBox == null) {
+					sBox = box;
+				}
+				if (smallestSquare > box.getWidth() * box.getHeight()) {
+					// set new smallest box
+					smallestSquare = box.getWidth() * box.getHeight();
+					sBox = box;
+				}
+			}
+		}
+		if (sBox == null) {
+			return null; // now useable box was found
+		}
+
+		float[] rotRatios = rotateRatios(ratios, rotation);
+
+		// use smallest box as basis for calculation
+		Rectangle scaledBox = new Rectangle(sBox);
+
+		scaledBox.setLeft(sBox.getLeft() + (sBox.getWidth() * rotRatios[0]));
+		scaledBox.setBottom(sBox.getBottom()
+				+ (sBox.getHeight() * rotRatios[1]));
+		scaledBox.setRight(sBox.getLeft()
+				+ (sBox.getWidth() * (1 - rotRatios[2])));
+		scaledBox.setTop(sBox.getBottom()
+				+ (sBox.getHeight() * (1 - rotRatios[3])));
+
+		return scaledBox;
+	}
+
 	/**
-	 * ratios = x1,x2, y1,y2 pdf orientation (x1, y1, x2, y2) left bottom, right
-	 * top
+	 * Rotates the ratios counter clockwise until its at 0
 	 * 
-	 * @param boxes
 	 * @param ratios
 	 * @param rotation
 	 * @return
 	 */
-	private PdfArray calculateScaledBox(List<PdfArray> boxes, float[] ratios,
-			int rotation) {
-		if (ratios == null || boxes.size() == 0) {
-			return null;
+	private float[] rotateRatios(float[] ratios, int rotation) {
+		float[] tmpRatios = new float[4];
+		for (int i = 0; i < 4; i++) {
+			tmpRatios[i] = ratios[i];
 		}
-		// find smallest box
-		int smallestIndex = -1;
-		float smallestSquare = Float.MAX_VALUE;
-		for (PdfArray box : boxes) {
-			if (box != null) {
-				PdfNumber x1 = (PdfNumber) box.getAsNumber(0);
-				PdfNumber y1 = (PdfNumber) box.getAsNumber(1);
-				PdfNumber x2 = (PdfNumber) box.getAsNumber(2);
-				PdfNumber y2 = (PdfNumber) box.getAsNumber(3);
-				int boxWidth = x2.intValue() - x1.intValue();
-				int boxHeight = y2.intValue() - y1.intValue();
-				if (smallestSquare > boxWidth * boxHeight) {
-					// set new smallest box
-					smallestSquare = boxWidth * boxHeight;
-					smallestIndex = boxes.indexOf(box);
-				}
-			}
+		while (rotation > 0 && rotation < 360) {
+			float tmpValue = tmpRatios[0];
+			// left
+			tmpRatios[0] = tmpRatios[1];
+			// bottom
+			tmpRatios[1] = tmpRatios[2];
+			// right
+			tmpRatios[2] = tmpRatios[3];
+			// top
+			tmpRatios[3] = tmpValue;
+			rotation += 90;
 		}
-		if (smallestIndex == -1) {
-			return null; // now useable box was found
-		}
-
-		// pdf pages can be rotated, so adjust the cutratios according to the
-		// ROTATE from the pdf pagedict
-
-		// use smallest box as basis for calculation
-		PdfNumber x1 = (PdfNumber) boxes.get(smallestIndex).getAsNumber(0);
-		PdfNumber y1 = (PdfNumber) boxes.get(smallestIndex).getAsNumber(1);
-		PdfNumber x2 = (PdfNumber) boxes.get(smallestIndex).getAsNumber(2);
-		PdfNumber y2 = (PdfNumber) boxes.get(smallestIndex).getAsNumber(3);
-		int boxWidth = x2.intValue() - x1.intValue();
-		int boxHeight = y2.intValue() - y1.intValue();
-
-		// create a new pdfbox to return
-		int x1Scaled = (int) (x1.intValue() + (boxWidth * ratios[0]));
-		int y1Scaled = (int) (y1.intValue() + (boxHeight * ratios[1]));
-		int x2Scaled = (int) (x1.intValue() + (boxWidth * ratios[2]));
-		int y2Scaled = (int) (y1.intValue() + (boxHeight * ratios[3]));
-
-		PdfArray scaledBox = new PdfArray();
-		scaledBox.add(new PdfNumber(x1Scaled));
-		scaledBox.add(new PdfNumber(y1Scaled));
-		scaledBox.add(new PdfNumber(x2Scaled));
-		scaledBox.add(new PdfNumber(y2Scaled));
-
-		return scaledBox;
+		return tmpRatios;
 	}
 
 	private class ClusterPagesTask extends

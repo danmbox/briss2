@@ -156,8 +156,8 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 	}
 
 	/**
-	 * creates the crop ratios from the user selection. 0 = xStart 1 = xEnd 2 =
-	 * yStart 3 = yEnd
+	 * creates the crop ratios from the user selection.
+	 *  0 = left 1 = bottom 2 = right 3 = top
 	 * 
 	 * @return the cropped ratios or null if to small
 	 */
@@ -190,14 +190,14 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 		}
 
 		float[] ratios = new float[4];
-		// x bottom left
+		// left
 		ratios[0] = (float) x1 / img.getWidth();
-		// y bottom left
+		// bottom
 		ratios[1] = (float) (img.getHeight() - y2) / img.getHeight();
-		// x top right
-		ratios[2] = (float) x2 / img.getWidth();
-		// y top right
-		ratios[3] = (float) (img.getHeight() - y1) / img.getHeight();
+		// right
+		ratios[2] = 1-((float) x2 / img.getWidth());
+		// top
+		ratios[3] = 1-((float) (img.getHeight() - y1) / img.getHeight());
 
 		return ratios;
 	}
