@@ -44,7 +44,7 @@ Starting the application
 ########################
 You can run the application by executing following command in terminal:
 
-java -jar briss-0.0.1.jar
+java -jar briss-0.0.2.jar
 
 ########################
 Instructions
@@ -55,4 +55,3 @@ Instructions
  2.2) Draw the rectangle
  2.3) Release the mouse button
 3) Start the cropping by pressing "Crop" and specify the destination of the cropped pdf
-
