@@ -20,6 +20,10 @@
 CHANGELOG  - BRISS  
 ################################################
 
+* 0.0.3 (released 11.05.2010)
+ * Resolved Bug:
+  * Crop rectangle height was limited to the same value as the width... 
+
 * 0.0.2 (released on 10.05.2010)
  * Performance improvements
  * Resolved Bugs:
