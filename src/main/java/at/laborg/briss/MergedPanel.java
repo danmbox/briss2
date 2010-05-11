@@ -181,8 +181,8 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 		if (y1<0) {
 			y1=0;
 		}
-		if (y2 > img.getWidth()) {
-			y2 = img.getWidth();
+		if (y2 > img.getHeight()) {
+			y2 = img.getHeight();
 		}
 
 		if ((x2 - x1) < MINIMUM_WIDTH) {

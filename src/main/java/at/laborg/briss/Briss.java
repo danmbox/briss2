@@ -194,7 +194,6 @@ public class Briss extends JFrame implements ActionListener,
 	@Override
 	public void actionPerformed(ActionEvent aE) {
 		if (aE.getActionCommand().equals(LOAD)) {
-			// TODO clear all previously used things
 			File loadFile = loadPDF(null, false);
 			if (loadFile != null) {
 				origFile = loadFile;
