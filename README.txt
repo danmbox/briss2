@@ -36,7 +36,7 @@ General
  * Operating systems: Windows, Linux, MacOSX
  * This software uses two libraries to render and crop PDF files: 
   * itext (AGPLv3) http://itextpdf.com/ 
-  * multivalent (GPLv3) http://multivalent.sourceforge.net/
+  * jpedal (LGPL) http://www.jpedal.org/
 
 
 ########################
@@ -44,7 +44,7 @@ Starting the application
 ########################
 You can run the application by executing following command in terminal:
 
-java -jar briss-0.0.2.jar
+java -jar briss-0.0.4.jar
 
 ########################
 Instructions

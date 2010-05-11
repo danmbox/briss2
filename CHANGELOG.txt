@@ -19,6 +19,8 @@
 ################################################
 CHANGELOG  - BRISS  
 ################################################
+* 0.0.4 (released 11.05.2010)
+ * Switched to JPedal for Image rendering since its more robust
 
 * 0.0.3 (released 11.05.2010)
  * Resolved Bug:

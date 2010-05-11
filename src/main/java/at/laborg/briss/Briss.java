@@ -22,11 +22,9 @@ import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Desktop;
 import java.awt.Dimension;
-import java.awt.Graphics2D;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
-import java.awt.RenderingHints;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
@@ -49,6 +47,8 @@ import javax.swing.JScrollPane;
 import javax.swing.SwingWorker;
 import javax.swing.filechooser.FileFilter;
 
+import org.jpedal.PdfDecoder;
+
 import com.lowagie.text.DocumentException;
 import com.lowagie.text.Rectangle;
 import com.lowagie.text.pdf.PdfArray;
@@ -57,12 +57,6 @@ import com.lowagie.text.pdf.PdfName;
 import com.lowagie.text.pdf.PdfNumber;
 import com.lowagie.text.pdf.PdfReader;
 import com.lowagie.text.pdf.PdfStamper;
-
-import multivalent.Behavior;
-import multivalent.Context;
-import multivalent.Document;
-import multivalent.Node;
-import multivalent.std.adaptor.pdf.PDF;
 
 /**
  * 
@@ -86,9 +80,6 @@ public class Briss extends JFrame implements ActionListener,
 	private CropPDFTask cropTask;
 	private File origFile = null;
 	private File croppedFile = null;
-
-	private final static int MAX_DOC_X = 30;
-	private final static int MAX_DOC_Y = 30;
 
 	public Briss() {
 		super("BRISS - BRigt Snippet Sire");
@@ -163,7 +154,10 @@ public class Briss extends JFrame implements ActionListener,
 		c.weightx = 1;
 		c.weighty = 1;
 		c.anchor = GridBagConstraints.CENTER;
-		add(new JScrollPane(previewPanel), c);
+		JScrollPane scrollPane = new JScrollPane(previewPanel,
+				JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
+				JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+		add(scrollPane, c);
 		c = new GridBagConstraints();
 		c.gridx = 0;
 		c.gridy = 1;
@@ -372,8 +366,7 @@ public class Briss extends JFrame implements ActionListener,
 		return tmpRatios;
 	}
 
-	private class ClusterPagesTask extends
-			SwingWorker<PDFPageCluster[], Void> {
+	private class ClusterPagesTask extends SwingWorker<PDFPageCluster[], Void> {
 
 		private int pageCount;
 
@@ -419,9 +412,8 @@ public class Briss extends JFrame implements ActionListener,
 			for (int i = 1; i <= pageCount; i++) {
 				Rectangle media = reader.getBoxSize(i, "media");
 				// create Cluster
-				PDFPageCluster tmpCluster = new PDFPageCluster(
-						i % 2 == 0, (int) media.getWidth(), (int) media
-								.getHeight());
+				PDFPageCluster tmpCluster = new PDFPageCluster(i % 2 == 0,
+						(int) media.getWidth(), (int) media.getHeight());
 
 				if (clusterToPageSet.containsKey(tmpCluster)) {
 					// cluster exists
@@ -445,10 +437,6 @@ public class Briss extends JFrame implements ActionListener,
 			}
 
 			// now render the pages and create the preview images
-			PDF pdf = (PDF) Behavior.getInstance("AdobePDF", "AdobePDF", null,
-					null, null);
-			Document doc = new Document("doc", null, null);
-
 			// for every cluster create a set of pages on which the preview will
 			// be based
 			for (PDFPageCluster cluster : clusterToPageSet.keySet()) {
@@ -456,6 +444,9 @@ public class Briss extends JFrame implements ActionListener,
 			}
 
 			int clusterCounter = 1;
+			// create a PdfDecoder using Jpedal library
+			PdfDecoder decode_pdf = new PdfDecoder(true);
+			decode_pdf.openPdfFile(origFile.getAbsolutePath());
 			for (PDFPageCluster cluster : clusterToPageSet.keySet()) {
 				WritableRaster raster = null;
 				double[][] imageData = null;
@@ -465,52 +456,20 @@ public class Briss extends JFrame implements ActionListener,
 
 				int pageCounter = 0;
 				for (Integer pageNumber : cluster.getPagesToMerge()) {
-					pdf = (PDF) Behavior.getInstance("AdobePDF", "AdobePDF",
-							null, null, null);
-					pdf.setInput(origFile);
-					doc = new Document("doc", null, null);
-					pdf.parse(doc);
-					doc.clear();
-					doc.putAttr(Document.ATTR_PAGE, Integer
-							.toString(pageNumber));
-					pdf.parse(doc);
 
-					Node top = doc.childAt(0);
-					doc.formatBeforeAfter(MAX_DOC_X, MAX_DOC_Y, null);
-					int w = top.bbox.width;
-					int h = top.bbox.height;
-
-					BufferedImage img = new BufferedImage(w, h,
-							BufferedImage.TYPE_INT_RGB);
-					Graphics2D g = img.createGraphics();
-					g.setClip(0, 0, w, h);
-
-					g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
-							RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-					g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-							RenderingHints.VALUE_ANTIALIAS_ON);
-					g.setRenderingHint(RenderingHints.KEY_RENDERING,
-							RenderingHints.VALUE_RENDER_QUALITY);
-
-					Context cx = doc.getStyleSheet().getContext(g, null);
-					top.paintBeforeAfter(g.getClipBounds(), cx);
+					BufferedImage bi = decode_pdf.getPageAsImage(pageNumber);
 
 					BufferedImage preview = cluster.getPreviewImage();
 					if (preview == null) {
-						preview = new BufferedImage(img.getWidth(), img
+						preview = new BufferedImage(bi.getWidth(), bi
 								.getHeight(), BufferedImage.TYPE_BYTE_GRAY);
-						imageData = new double[img.getWidth()][img.getHeight()];
+						imageData = new double[bi.getWidth()][bi.getHeight()];
 						raster = preview.getRaster()
 								.createCompatibleWritableRaster();
 						cluster.setPreviewImage(preview);
 					}
-					average(img, imageData);
+					average(bi, imageData);
 
-					doc.removeAllChildren();
-					cx.reset();
-					g.dispose();
-					pdf.getReader().close();
-					doc = null;
 					int percent = (int) ((pageCounter++ / (float) cluster
 							.getPagesToMerge().size()) * 100);
 					setProgress(percent);
@@ -523,7 +482,6 @@ public class Briss extends JFrame implements ActionListener,
 				}
 				cluster.getPreviewImage().setData(raster);
 			}
-
 			return clustersMapping;
 		}
 	}
