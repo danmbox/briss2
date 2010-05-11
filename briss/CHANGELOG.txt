@@ -1,0 +1,36 @@
+// $Id$
+/**
+ * Copyright 2010 Gerhard Aigner
+ * 
+ * This file is part of BRISS.
+ * 
+ * BRISS is free software: you can redistribute it and/or modify it under the
+ * terms of the GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option) any later
+ * version.
+ * 
+ * BRISS is distributed in the hope that it will be useful, but WITHOUT ANY
+ * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+ * A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License along with
+ * BRISS. If not, see http://www.gnu.org/licenses/.
+ */
+################################################
+CHANGELOG  - BRISS  
+################################################
+* 0.0.4 (released 11.05.2010)
+ * Switched to JPedal for Image rendering since its more robust
+
+* 0.0.3 (released 11.05.2010)
+ * Resolved Bug:
+  * Crop rectangle height was limited to the same value as the width... 
+
+* 0.0.2 (released on 10.05.2010)
+ * Performance improvements
+ * Resolved Bugs:
+   #2999011 - Handling of rotated PDFs is implemented
+   #2999012 - Cropped rectangle is now limited to the preview image size 
+
+* 0.0.1 (released on 09.05.2010)
+ * Initial release
