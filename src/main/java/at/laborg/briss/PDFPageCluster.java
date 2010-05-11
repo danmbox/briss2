@@ -27,7 +27,7 @@ import java.util.List;
 
 public class PDFPageCluster {
 
-	private final static int MERGE_VARIABILITY = 20;
+	private final static int MERGE_VARIABILITY = 30;
 	private final static int MAX_MERGE_PAGES = 20;
 	private List<Integer> pagesToMerge;
 	private List<Integer> allPages;
