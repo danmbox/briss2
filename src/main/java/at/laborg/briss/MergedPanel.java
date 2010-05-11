@@ -29,6 +29,7 @@ import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.awt.image.BufferedImage;
 
+import javax.swing.JButton;
 import javax.swing.JPanel;
 
 @SuppressWarnings("serial")
@@ -42,6 +43,8 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 	private static Composite composite = AlphaComposite.getInstance(
 			AlphaComposite.SRC_OVER, .2f);
 	private PDFPageCluster cluster;
+	
+	private JButton resetBtn;
 
 	public MergedPanel(PDFPageCluster cluster) {
 		super();
@@ -50,6 +53,7 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 		setPreferredSize(new Dimension(img.getWidth(), img.getHeight()));
 		addMouseMotionListener(this);
 		addMouseListener(this);
+		
 		setToolTipText(createInfoString(cluster));
 	}
 

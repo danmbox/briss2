@@ -28,7 +28,6 @@ import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
-import java.awt.image.WritableRaster;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.File;
@@ -410,10 +409,13 @@ public class Briss extends JFrame implements ActionListener,
 			PdfReader reader = new PdfReader(origFile.getAbsolutePath());
 
 			for (int i = 1; i <= pageCount; i++) {
-				Rectangle media = reader.getBoxSize(i, "media");
+				Rectangle layoutBox = reader.getBoxSize(i, "crop");
+				if (layoutBox == null) {
+					layoutBox = reader.getBoxSize(i, "media");
+				}
 				// create Cluster
 				PDFPageCluster tmpCluster = new PDFPageCluster(i % 2 == 0,
-						(int) media.getWidth(), (int) media.getHeight());
+						(int) layoutBox.getWidth(), (int) layoutBox.getHeight());
 
 				if (clusterToPageSet.containsKey(tmpCluster)) {
 					// cluster exists
@@ -448,49 +450,23 @@ public class Briss extends JFrame implements ActionListener,
 			PdfDecoder decode_pdf = new PdfDecoder(true);
 			decode_pdf.openPdfFile(origFile.getAbsolutePath());
 			for (PDFPageCluster cluster : clusterToPageSet.keySet()) {
-				WritableRaster raster = null;
-				double[][] imageData = null;
 				progressBar.setString("PDF analysed - creating cluster:"
 						+ clusterCounter++);
 				progressBar.setValue(0);
 
 				int pageCounter = 0;
 				for (Integer pageNumber : cluster.getPagesToMerge()) {
-
-					BufferedImage bi = decode_pdf.getPageAsImage(pageNumber);
-
-					BufferedImage preview = cluster.getPreviewImage();
-					if (preview == null) {
-						preview = new BufferedImage(bi.getWidth(), bi
-								.getHeight(), BufferedImage.TYPE_BYTE_GRAY);
-						imageData = new double[bi.getWidth()][bi.getHeight()];
-						raster = preview.getRaster()
-								.createCompatibleWritableRaster();
-						cluster.setPreviewImage(preview);
-					}
-					average(bi, imageData);
+					BufferedImage renderedPage = decode_pdf
+							.getPageAsImage(pageNumber);
+					cluster.addImageToPreview(renderedPage);
 
 					int percent = (int) ((pageCounter++ / (float) cluster
 							.getPagesToMerge().size()) * 100);
 					setProgress(percent);
 				}
-				for (int k = 0; k < cluster.getPreviewImage().getHeight(); ++k) {
-					for (int j = 0; j < cluster.getPreviewImage().getWidth(); ++j) {
-						raster.setSample(j, k, 0, Math.round(imageData[j][k]
-								/ (cluster.getPagesToMerge().size())));
-					}
-				}
-				cluster.getPreviewImage().setData(raster);
+
 			}
 			return clustersMapping;
-		}
-	}
-
-	static void average(BufferedImage image, double[][] values) {
-		for (int k = 0; k < image.getHeight(); ++k) {
-			for (int j = 0; j < image.getWidth(); ++j) {
-				values[j][k] += image.getRaster().getSample(j, k, 0);
-			}
 		}
 	}
 

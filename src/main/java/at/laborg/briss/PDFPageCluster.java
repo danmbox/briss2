@@ -18,16 +18,22 @@
  */
 package at.laborg.briss;
 
+import java.awt.Graphics2D;
+import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
+import java.awt.image.WritableRaster;
 import java.util.ArrayList;
 import java.util.List;
 
 public class PDFPageCluster {
 
+	private final static int MERGE_VARIABILITY = 20;
 	private final static int MAX_MERGE_PAGES = 20;
 	private List<Integer> pagesToMerge;
 	private List<Integer> allPages;
 	private BufferedImage previewImage;
+	private WritableRaster raster = null;
+	private double[][] imageData = null;
 	private float[] ratios;
 
 	private boolean evenPage;
@@ -42,11 +48,54 @@ public class PDFPageCluster {
 		this.pagesToMerge = new ArrayList<Integer>();
 	}
 
-	public void setPreviewImage(BufferedImage previewImage) {
-		this.previewImage = previewImage;
+	public void addImageToPreview(BufferedImage imageToAdd) {
+		if (previewImage == null) {
+			// create the first preview image
+			previewImage = new BufferedImage(imageToAdd.getWidth(), imageToAdd
+					.getHeight(), BufferedImage.TYPE_BYTE_GRAY);
+			previewImage.getGraphics().drawImage(imageToAdd, 0, 0, null);
+			raster = previewImage.getRaster().createCompatibleWritableRaster();
+			imageData = new double[previewImage.getWidth()][previewImage
+					.getHeight()];
+			average(scaleImage(imageToAdd, previewImage.getWidth(),
+					previewImage.getHeight()), imageData);
+		} else {
+			// scaleimage to the first added
+			average(scaleImage(imageToAdd, previewImage.getWidth(),
+					previewImage.getHeight()), imageData);
+		}
+	}
+
+	private static void average(BufferedImage image, double[][] values) {
+		for (int k = 0; k < image.getHeight(); ++k) {
+			for (int j = 0; j < image.getWidth(); ++j) {
+				values[j][k] += image.getRaster().getSample(j, k, 0);
+			}
+		}
+	}
+
+	private static BufferedImage scaleImage(BufferedImage bsrc, int width,
+			int height) {
+		BufferedImage bdest = new BufferedImage(width, height,
+				BufferedImage.TYPE_BYTE_GRAY);
+		Graphics2D g = bdest.createGraphics();
+		AffineTransform at = AffineTransform.getScaleInstance((double) bdest
+				.getWidth()
+				/ bsrc.getWidth(), (double) bdest.getHeight()
+				/ bsrc.getHeight());
+		g.drawRenderedImage(bsrc, at);
+		g.dispose();
+		return bdest;
 	}
 
 	public BufferedImage getPreviewImage() {
+		for (int k = 0; k < previewImage.getHeight(); ++k) {
+			for (int j = 0; j < previewImage.getWidth(); ++j) {
+				raster.setSample(j, k, 0, Math.round(imageData[j][k]
+						/ (getPagesToMerge().size())));
+			}
+		}
+		previewImage.setData(raster);
 		return previewImage;
 	}
 
@@ -68,8 +117,8 @@ public class PDFPageCluster {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + (evenPage ? 1231 : 1237);
-		result = prime * result + pageHeight;
-		result = prime * result + pageWidth;
+		result = prime * result + getRoundedPageHeight();
+		result = prime * result + getRoundedPageWidth();
 		return result;
 	}
 
@@ -84,15 +133,25 @@ public class PDFPageCluster {
 		PDFPageCluster other = (PDFPageCluster) obj;
 		if (evenPage != other.evenPage)
 			return false;
-		if (pageHeight != other.pageHeight)
+		if (getRoundedPageHeight() != other.getRoundedPageHeight())
 			return false;
-		if (pageWidth != other.pageWidth)
+		if (getRoundedPageWidth() != other.getRoundedPageWidth())
 			return false;
 		return true;
 	}
 
 	public boolean isEvenPage() {
 		return evenPage;
+	}
+
+	public int getRoundedPageHeight() {
+		int tmp = pageHeight / MERGE_VARIABILITY;
+		return tmp * MERGE_VARIABILITY;
+	}
+
+	public int getRoundedPageWidth() {
+		int tmp = pageWidth / MERGE_VARIABILITY;
+		return tmp * MERGE_VARIABILITY;
 	}
 
 	public void choosePagesToMerge(List<Integer> pages) {
