@@ -44,14 +44,14 @@ Starting the application
 ########################
 You can run the application by executing following command in terminal:
 
-java -jar briss-0.0.5.jar
+java -jar briss-0.0.6.jar
 
 ########################
 Instructions
 ########################
 1) Load a pdf by pressing "Load"
-2) Create crop rectangle for all page cluster:
+2) Create multiple crop rectangles for all page cluster: Each crop rectangle will result in a cropped page.
  2.1) Press the left mouse button on a corner where you want to start
  2.2) Draw the rectangle
  2.3) Release the mouse button
-3) Start the cropping by pressing "Crop" and specify the destination of the cropped pdf
+3) Start the cropping by pressing "Crop" and specify the destination of the cropped pdf.

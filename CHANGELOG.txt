@@ -19,6 +19,10 @@
 ################################################
 CHANGELOG  - BRISS  
 ################################################
+* 0.0.6 (released 13.05.2010)
+ * Added multiple column support (actually it's a multiple rectangle capability)
+ * Integrated a small description how to use the software.
+
 * 0.0.5 (released 12.05.2010)
  * Clustering of pages is now done with a small buffer regarding the size in order not to create to much clusters.
  * Fixed a bug for pages not having a crop box... 

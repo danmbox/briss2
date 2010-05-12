@@ -43,18 +43,22 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
 import javax.swing.SwingWorker;
 import javax.swing.filechooser.FileFilter;
 
 import org.jpedal.PdfDecoder;
 
+import com.lowagie.text.Document;
 import com.lowagie.text.DocumentException;
 import com.lowagie.text.Rectangle;
 import com.lowagie.text.pdf.PdfArray;
 import com.lowagie.text.pdf.PdfDictionary;
+import com.lowagie.text.pdf.PdfImportedPage;
 import com.lowagie.text.pdf.PdfName;
 import com.lowagie.text.pdf.PdfNumber;
 import com.lowagie.text.pdf.PdfReader;
+import com.lowagie.text.pdf.PdfSmartCopy;
 import com.lowagie.text.pdf.PdfStamper;
 
 /**
@@ -246,43 +250,76 @@ public class Briss extends JFrame implements ActionListener,
 
 			PdfReader reader;
 			try {
+
+				// first make a copy containing the right amount of pages
 				reader = new PdfReader(origFile.getAbsolutePath());
+				Document document = new Document();
+
+				File tmpFile = File.createTempFile("cropped", ".pdf");
+				PdfSmartCopy pdfCopy = new PdfSmartCopy(document,
+						new FileOutputStream(tmpFile));
+				document.open();
+				int origPageCount = reader.getNumberOfPages();
+				PdfImportedPage page;
+
+				for (int pageNumber = 1; pageNumber <= origPageCount; pageNumber++) {
+					PDFPageCluster clusterInfo = clustersMapping[pageNumber - 1];
+					page = pdfCopy.getImportedPage(reader, pageNumber);
+					pdfCopy.addPage(page);
+					for (int j = 1; j < clusterInfo.getRatiosList().size(); j++) {
+						pdfCopy.addPage(page);
+					}
+				}
+				document.close();
+				pdfCopy.close();
+
+				// no crop all pages according to their ratios
+
+				reader = new PdfReader(tmpFile.getAbsolutePath());
 
 				PdfStamper stamper = new PdfStamper(reader,
 						new FileOutputStream(croppedFile));
 
-				int pageCount = reader.getNumberOfPages();
 				PdfDictionary pageDict;
-				for (int pageNumber = 1; pageNumber <= pageCount; pageNumber++) {
-					PDFPageCluster clusterInfo = clustersMapping[pageNumber - 1];
+				int newPageNumber = 1;
+				for (int origPageNumber = 1; origPageNumber <= origPageCount; origPageNumber++) {
+					PDFPageCluster clusterInfo = clustersMapping[origPageNumber - 1];
+
 					// if no cop was selected do nothing
-					if (clusterInfo.getRatios() == null)
+					if (clusterInfo.getRatiosList().size() == 0) {
+						newPageNumber++;
 						continue;
+					}
 
-					pageDict = reader.getPageN(pageNumber);
+					for (Float[] ratios : clusterInfo.getRatiosList()) {
 
-					List<Rectangle> boxes = new ArrayList<Rectangle>();
-					boxes.add(reader.getBoxSize(pageNumber, "media"));
-					boxes.add(reader.getBoxSize(pageNumber, "crop"));
-					boxes.add(reader.getBoxSize(pageNumber, "trim"));
-					boxes.add(reader.getBoxSize(pageNumber, "bleed"));
-					int rotation = reader.getPageRotation(pageNumber);
+						pageDict = reader.getPageN(newPageNumber);
 
-					Rectangle scaledBox = calculateScaledRectangle(boxes,
-							clusterInfo.getRatios(), rotation);
+						List<Rectangle> boxes = new ArrayList<Rectangle>();
+						boxes.add(reader.getBoxSize(newPageNumber, "media"));
+						boxes.add(reader.getBoxSize(newPageNumber, "crop"));
+						boxes.add(reader.getBoxSize(newPageNumber, "trim"));
+						boxes.add(reader.getBoxSize(newPageNumber, "bleed"));
+						int rotation = reader.getPageRotation(newPageNumber);
 
-					PdfArray scaleBoxArray = new PdfArray();
-					scaleBoxArray.add(new PdfNumber(scaledBox.getLeft()));
-					scaleBoxArray.add(new PdfNumber(scaledBox.getBottom()));
-					scaleBoxArray.add(new PdfNumber(scaledBox.getRight()));
-					scaleBoxArray.add(new PdfNumber(scaledBox.getTop()));
+						Rectangle scaledBox = calculateScaledRectangle(boxes,
+								ratios, rotation);
 
-					pageDict.put(PdfName.CROPBOX, scaleBoxArray);
-					pageDict.put(PdfName.MEDIABOX, scaleBoxArray);
-					pageDict.put(PdfName.TRIMBOX, scaleBoxArray);
-					pageDict.put(PdfName.BLEEDBOX, scaleBoxArray);
+						PdfArray scaleBoxArray = new PdfArray();
+						scaleBoxArray.add(new PdfNumber(scaledBox.getLeft()));
+						scaleBoxArray.add(new PdfNumber(scaledBox.getBottom()));
+						scaleBoxArray.add(new PdfNumber(scaledBox.getRight()));
+						scaleBoxArray.add(new PdfNumber(scaledBox.getTop()));
 
-					int percent = (int) ((pageNumber / (float) clustersMapping.length) * 100);
+						pageDict.put(PdfName.CROPBOX, scaleBoxArray);
+						pageDict.put(PdfName.MEDIABOX, scaleBoxArray);
+						pageDict.put(PdfName.TRIMBOX, scaleBoxArray);
+						pageDict.put(PdfName.BLEEDBOX, scaleBoxArray);
+						// increment the pagenumber
+						newPageNumber++;
+					}
+
+					int percent = (int) ((origPageNumber / (float) origPageCount) * 100);
 					setProgress(percent);
 				}
 				stamper.close();
@@ -298,7 +335,7 @@ public class Briss extends JFrame implements ActionListener,
 	}
 
 	private Rectangle calculateScaledRectangle(List<Rectangle> boxes,
-			float[] ratios, int rotation) {
+			Float[] ratios, int rotation) {
 		if (ratios == null || boxes.size() == 0) {
 			return null;
 		}
@@ -345,7 +382,7 @@ public class Briss extends JFrame implements ActionListener,
 	 * @param rotation
 	 * @return
 	 */
-	private float[] rotateRatios(float[] ratios, int rotation) {
+	private float[] rotateRatios(Float[] ratios, int rotation) {
 		float[] tmpRatios = new float[4];
 		for (int i = 0; i < 4; i++) {
 			tmpRatios[i] = ratios[i];
@@ -387,9 +424,23 @@ public class Briss extends JFrame implements ActionListener,
 		protected void done() {
 			setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
 			int yposition = 0;
+			GridBagConstraints c = new GridBagConstraints();
+			c.gridx = 0;
+			c.gridy = yposition++;
+			c.anchor = GridBagConstraints.CENTER;
+			c.insets = new Insets(2, 0, 2, 0);
+			JTextArea text = new JTextArea(
+					" Draw multiple crop rectangles for merged pages by clicking+holding the left mouse button down."
+							+ " The number reflects the ordering of the new pages. "
+							+ "Clear the rectangles for a page-cluster by pressing the right mouse button.");
+			text.setLineWrap(true);
+			text.setForeground(Color.YELLOW);
+			text.setBackground(Color.BLACK);
+			previewPanel.add(text, c);
+
 			for (PDFPageCluster cluster : clusterToPageSet.keySet()) {
 				MergedPanel p = new MergedPanel(cluster);
-				GridBagConstraints c = new GridBagConstraints();
+				c = new GridBagConstraints();
 				c.gridx = 0;
 				c.gridy = yposition++;
 				c.anchor = GridBagConstraints.CENTER;

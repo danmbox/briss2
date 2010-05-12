@@ -34,7 +34,8 @@ public class PDFPageCluster {
 	private BufferedImage previewImage;
 	private WritableRaster raster = null;
 	private double[][] imageData = null;
-	private float[] ratios;
+	private List<Float[]> cropRatiosList = new ArrayList<Float[]>();
+//	private float[] ratios;
 
 	private boolean evenPage;
 	private int pageWidth;
@@ -104,12 +105,15 @@ public class PDFPageCluster {
 	 * 
 	 * @return
 	 */
-	public float[] getRatios() {
-		return ratios;
+	public List<Float[]> getRatiosList() {
+		return cropRatiosList;
 	}
 
-	public void setRatios(float[] ratios) {
-		this.ratios = ratios;
+	public void clearRatios() {
+		cropRatiosList.clear();
+	}
+	public void addRatios(Float[] ratios) {
+		cropRatiosList.add(ratios);
 	}
 
 	@Override
