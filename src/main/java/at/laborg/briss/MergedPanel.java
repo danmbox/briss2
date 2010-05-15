@@ -19,12 +19,14 @@
 package at.laborg.briss;
 
 import java.awt.AlphaComposite;
+import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Composite;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
@@ -39,14 +41,22 @@ import javax.swing.JPanel;
 public class MergedPanel extends JPanel implements MouseMotionListener,
 		MouseListener {
 
-	private static final int MINIMUM_WIDTH = 20;
-	private static final int MINIMUM_HEIGHT = 20;
-	private BufferedImage img;
-	private int tmpCropXStart, tmpCropXEnd, tmpCropYStart, tmpCropYEnd;
-	private static Composite composite = AlphaComposite.getInstance(
-			AlphaComposite.SRC_OVER, .2f);
-	private List<CropRectangle> crops = new ArrayList<CropRectangle>();
-	private PDFPageCluster cluster;
+	// last drawn rectangle. a "ghosting" rectangle will
+	// help the user to create the two equally sized crop rectangles
+	private static CropRect lastCrop;
+	private static CropRect curCrop;
+	private static Point lastDragPoint;
+	private static Point cropStartPoint;
+	private static int dragCropIndex = -1;
+
+	private final static Composite compositeSmooth = AlphaComposite
+			.getInstance(AlphaComposite.SRC_OVER, .2f);
+	private final static Composite compositeXor = AlphaComposite.getInstance(
+			AlphaComposite.SRC_OVER, .8f);
+
+	private final List<CropRect> crops = new ArrayList<CropRect>();
+	private final PDFPageCluster cluster;
+	private final BufferedImage img;
 
 	public MergedPanel(PDFPageCluster cluster) {
 		super();
@@ -92,49 +102,81 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 		// draw previously created rectangles
 		int cropCnt = 0;
 		Font currentFont = g2.getFont();
-		g2.setComposite(composite);
-		for (CropRectangle crop : crops) {
+		g2.setComposite(compositeSmooth);
+		for (CropRect crop : crops) {
 			g2.setColor(Color.BLUE);
-			g2.fillRect(crop.xStart, crop.yStart, crop.width, crop.height);
+			g2.fill(crop);
 
 			g2.setColor(Color.BLACK);
-			Font scaledFont = scaleFont(String.valueOf(cropCnt++), crop
-					.getRectangle(), g2, currentFont);
+			Font scaledFont = scaleFont(String.valueOf(cropCnt++), crop, g2,
+					currentFont);
 			g2.setFont(scaledFont);
-			g2.drawString(String.valueOf(cropCnt), crop.xStart, crop.yStart
-					+ crop.height);
-		}
-		g2.setComposite(composite);
-		g2.setColor(Color.BLUE);
+			g2
+					.drawString(String.valueOf(cropCnt), crop.x, crop.y
+							+ crop.height);
 
-		if (tmpCropXStart < tmpCropXEnd) {
-			if (tmpCropYStart < tmpCropYEnd) {
-				g2.fillRect(tmpCropXStart, tmpCropYStart, tmpCropXEnd
-						- tmpCropXStart, tmpCropYEnd - tmpCropYStart);
-			} else {
-				g2.fillRect(tmpCropXStart, tmpCropYEnd, tmpCropXEnd
-						- tmpCropXStart, tmpCropYStart - tmpCropYEnd);
-			}
-		} else {
-			if (tmpCropYStart < tmpCropYEnd) {
-				g2.fillRect(tmpCropXEnd, tmpCropYStart, tmpCropXStart
-						- tmpCropXEnd, tmpCropYEnd - tmpCropYStart);
-			} else {
-				g2.fillRect(tmpCropXEnd, tmpCropYEnd, tmpCropXStart
-						- tmpCropXEnd, tmpCropYStart - tmpCropYEnd);
+			if (crop.isSelected()) {
+				g2.setComposite(compositeXor);
+				g2.setColor(Color.BLACK);
+
+				scaledFont = scaleFont("Selected", crop, g2, currentFont);
+				g2.setFont(scaledFont);
+				g2.fill(crop);
+				g2.setColor(Color.YELLOW);
+				g2.setComposite(compositeSmooth);
+				g2.drawString("Selected", crop.x, crop.y + crop.height);
 			}
 		}
+
+		g2.setColor(Color.BLUE);
+		if (curCrop != null) {
+			g2.fill(curCrop);
+			if (lastCrop != null) {
+				// draw "ghost"-rectangle to show the dimension of the last crop
+				g2.setColor(Color.GREEN);
+				g2.setStroke(new BasicStroke(3.0f));
+				g2.setComposite(compositeXor);
+				g2.drawRect(curCrop.x, curCrop.y, lastCrop.width,
+						lastCrop.height);
+			}
+		}
+
 		g2.dispose();
 
 	}
 
 	@Override
 	public void mouseDragged(MouseEvent mE) {
-		if ((tmpCropXStart != -1) && (tmpCropYStart != -1)) {
-			tmpCropXEnd = mE.getX();
-			tmpCropYEnd = mE.getY();
-			repaint();
+		Point curPoint = mE.getPoint();
+
+		if (dragCropIndex == -1) {
+			if (cropStartPoint == null) {
+				cropStartPoint = curPoint;
+			}
+			// create the rectangle to draw
+			curCrop = new CropRect();
+			curCrop.x = (curPoint.x < cropStartPoint.x) ? curPoint.x
+					: cropStartPoint.x;
+			curCrop.width = Math.abs(curPoint.x - cropStartPoint.x);
+			curCrop.y = (curPoint.y < cropStartPoint.y) ? curPoint.y
+					: cropStartPoint.y;
+			curCrop.height = Math.abs(curPoint.y - cropStartPoint.y);
+			// // cut it to the image border
+			// curCrop = curCrop.intersection(new Rectangle(0, 0,
+			// img.getWidth(),
+			// img.getHeight()));
+		} else {
+			if (lastDragPoint == null)
+				lastDragPoint = curPoint;
+			// drag the rectangle around
+			crops.get(dragCropIndex).translate(curPoint.x - lastDragPoint.x,
+					curPoint.y - lastDragPoint.y);
+			lastDragPoint = curPoint;
+			// crops.set(dragCropIndex, crops.get(dragCropIndex).intersection(
+			// new Rectangle(0, 0, img.getWidth(), img.getHeight())));
 		}
+
+		repaint();
 	}
 
 	@Override
@@ -156,98 +198,165 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 
 	@Override
 	public void mousePressed(MouseEvent mE) {
-		if (mE.getButton() == MouseEvent.BUTTON1) {
-			tmpCropXStart = mE.getX();
-			tmpCropYStart = mE.getY();
-		} else {
-			tmpCropXEnd = -1;
-			tmpCropXStart = -1;
-			tmpCropYEnd = -1;
-			tmpCropYStart = -1;
+		Point p = mE.getPoint();
 
-			crops.clear();
+		if (mE.isControlDown()) {
+			for (CropRect crop : crops) {
+				if (crop.contains(p)) {
+					crop.setSelected(!crop.isSelected());
+				}
+			}
+			repaint();
+			return;
+		}
+		if (mE.getButton() == MouseEvent.BUTTON1) {
+			// check if the click was made in a crop rectangle
+			for (Rectangle crop : crops) {
+				if (crop.contains(p)) {
+					dragCropIndex = crops.indexOf(crop);
+				}
+			}
+			if (dragCropIndex == -1) {
+				cropStartPoint = p;
+			}
+		} else {
+			int deleteIndex = -1;
+			for (Rectangle crop : crops) {
+				if (crop.contains(p)) {
+					deleteIndex = crops.indexOf(crop);
+				}
+			}
+			if (deleteIndex != -1) {
+				crops.remove(deleteIndex);
+			}
 			cluster.clearRatios();
 			repaint();
 		}
 	}
 
+	public int getWidestRect() {
+		int max = -1;
+		for (CropRect crop : crops) {
+			if (crop.isSelected()) {
+				if (crop.width > max) {
+					max = crop.width;
+				}
+			}
+		}
+		return max;
+	}
+
+	public int getHeighestRect() {
+		int max = -1;
+		for (CropRect crop : crops) {
+			if (crop.isSelected()) {
+				if (crop.height > max) {
+					max = crop.height;
+				}
+			}
+		}
+		return max;
+	}
+
+	public void setSelCropWidth(int width) {
+		for (CropRect crop : crops) {
+			if (crop.isSelected()) {
+				int diffToMax = width - crop.width;
+				crop.grow(diffToMax / 2, 0);
+			}
+		}
+		updateClusterRatios(crops);
+		repaint();
+	}
+
+	public void setSelCropHeight(int height) {
+		for (CropRect crop : crops) {
+			if (crop.isSelected()) {
+				int diffToMax = height - crop.height;
+				crop.grow(0, diffToMax / 2);
+			}
+		}
+		updateClusterRatios(crops);
+		repaint();
+	}
+
 	@Override
 	public void mouseReleased(MouseEvent arg0) {
 		// add croprectangle to list
-		if (tmpCropXStart != -1 && tmpCropYStart != -1) {
-
-			crops.add(new CropRectangle(tmpCropXStart, tmpCropYStart,
-					tmpCropXEnd, tmpCropYEnd));
-			cluster.addRatios(getCutRatiosForPdf());
+		if (curCrop != null) {
+			crops.add(curCrop);
+			lastCrop = curCrop;
 		}
-		tmpCropXEnd = -1;
-		tmpCropXStart = -1;
-		tmpCropYEnd = -1;
-		tmpCropYStart = -1;
-
+		// throw away all crops which are to small
+		List<Rectangle> cropsToTrash = new ArrayList<Rectangle>();
+		for (Rectangle crop : crops) {
+			if (crop.getWidth() < 5 || crop.getHeight() < 5) {
+				cropsToTrash.add(crop);
+			}
+		}
+		crops.removeAll(cropsToTrash);
+		updateClusterRatios(crops);
+		cropStartPoint = null;
+		lastDragPoint = null;
+		dragCropIndex = -1;
+		curCrop = null;
 		repaint();
+	}
+
+	private void updateClusterRatios(List<CropRect> tmpCrops) {
+		cluster.clearRatios();
+		for (Rectangle crop : tmpCrops) {
+			cluster.addRatios(getCutRatiosForPdf(crop, img.getWidth(), img
+					.getHeight()));
+		}
 	}
 
 	/**
 	 * creates the crop ratios from the user selection. 0 = left 1 = bottom 2 =
 	 * right 3 = top
 	 * 
+	 * @param crop
+	 * 
 	 * @return the cropped ratios or null if to small
 	 */
-	private Float[] getCutRatiosForPdf() {
+	private static Float[] getCutRatiosForPdf(Rectangle crop, int imgWidth,
+			int imgHeight) {
 		int x1, x2, y1, y2;
-		// x1 should always be smaller than x2
-		if (tmpCropXStart > tmpCropXEnd) {
-			x1 = tmpCropXEnd;
-			x2 = tmpCropXStart;
-		} else {
-			x1 = tmpCropXStart;
-			x2 = tmpCropXEnd;
-		}
-		// y1 should always be smaller than y2
-		if (tmpCropYStart > tmpCropYEnd) {
-			y1 = tmpCropYEnd;
-			y2 = tmpCropYStart;
-		} else {
-			y1 = tmpCropYStart;
-			y2 = tmpCropYEnd;
-		}
+
+		x1 = crop.x;
+		x2 = x1 + crop.width;
+		y1 = crop.y;
+		y2 = y1 + crop.height;
 
 		// check for maximum and minimum
 		if (x1 < 0) {
 			x1 = 0;
 		}
-		if (x2 > img.getWidth()) {
-			x2 = img.getWidth();
+		if (x2 > imgWidth) {
+			x2 = imgWidth;
 		}
 		if (y1 < 0) {
 			y1 = 0;
 		}
-		if (y2 > img.getHeight()) {
-			y2 = img.getHeight();
-		}
-
-		if ((x2 - x1) < MINIMUM_WIDTH) {
-			return null;
-		}
-		if ((y2 - y1) < MINIMUM_HEIGHT) {
-			return null;
+		if (y2 > imgHeight) {
+			y2 = imgHeight;
 		}
 
 		Float[] ratios = new Float[4];
 		// left
-		ratios[0] = (float) x1 / img.getWidth();
+		ratios[0] = (float) x1 / imgWidth;
 		// bottom
-		ratios[1] = (float) (img.getHeight() - y2) / img.getHeight();
+		ratios[1] = (float) (imgHeight - y2) / imgHeight;
 		// right
-		ratios[2] = 1 - ((float) x2 / img.getWidth());
+		ratios[2] = 1 - ((float) x2 / imgWidth);
 		// top
-		ratios[3] = 1 - ((float) (img.getHeight() - y1) / img.getHeight());
+		ratios[3] = 1 - ((float) (imgHeight - y1) / imgHeight);
 
 		return ratios;
 	}
 
-	private Font scaleFont(String text, Rectangle rect, Graphics g, Font pFont) {
+	private static Font scaleFont(String text, Rectangle rect, Graphics g,
+			Font pFont) {
 
 		Font font = pFont;
 		float fontSize = (float) font.getSize();
@@ -256,48 +365,22 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 		int height = g.getFontMetrics(font).getHeight();
 		float scaleFactorWidth = rect.width / width;
 		float scaleFactorHeight = rect.height / height;
-		float scaledWidth = (scaleFactorWidth * fontSize) * 0.7f;
-		float scaledHeight = (scaleFactorHeight * fontSize) * 0.7f;
+		float scaledWidth = (scaleFactorWidth * fontSize);
+		float scaledHeight = (scaleFactorHeight * fontSize);
 		return g.getFont().deriveFont(
 				(scaleFactorHeight > scaleFactorWidth) ? scaledWidth
 						: scaledHeight);
 	}
 
-	private class CropRectangle {
-		private int xStart, yStart, width, height;
+	private class CropRect extends Rectangle {
+		private boolean selected = false;
 
-		/**
-		 * Creates a rectangle defined by top left and bottom right corner with
-		 * the origin in top left corner of the component
-		 * 
-		 * @param x1
-		 * @param y1
-		 * @param x2
-		 * @param y2
-		 */
-		public CropRectangle(int x1, int y1, int x2, int y2) {
-			super();
-
-			// x1 should always be smaller than x2
-			if (x1 > x2) {
-				this.xStart = x2;
-				this.width = x1 - x2;
-			} else {
-				this.xStart = x1;
-				this.width = x2 - x1;
-			}
-			// y1 should always be smaller than y2
-			if (y1 > y2) {
-				this.yStart = y2;
-				this.height = y1 - y2;
-			} else {
-				this.yStart = y1;
-				this.height = y2 - y1;
-			}
+		public boolean isSelected() {
+			return selected;
 		}
 
-		private Rectangle getRectangle() {
-			return new Rectangle(xStart, yStart, width, height);
+		public void setSelected(boolean selected) {
+			this.selected = selected;
 		}
 
 	}

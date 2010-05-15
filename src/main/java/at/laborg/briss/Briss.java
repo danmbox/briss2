@@ -72,17 +72,20 @@ public class Briss extends JFrame implements ActionListener,
 
 	private static final String LOAD = "Load File";
 	private static final String CROP = "Crop PDF";
+	private static final String MAXIMIZE_WIDTH = "Maximize to width";
+	private static final String MAXIMIZE_HEIGHT = "Maximize to height";
 
 	private PDFPageCluster[] clustersMapping;
 	private HashMap<PDFPageCluster, List<Integer>> clusterToPageSet;
 
 	private JPanel previewPanel;
 	private JProgressBar progressBar;
-	private JButton loadBtn, cropBtn;
+	private JButton loadBtn, cropBtn, maxWBtn, maxHBtn;
 	private ClusterPagesTask clusterTask;
 	private CropPDFTask cropTask;
 	private File origFile = null;
 	private File croppedFile = null;
+	private List<MergedPanel> mergedPanels = null;
 
 	public Briss() {
 		super("BRISS - BRigt Snippet Sire");
@@ -139,10 +142,19 @@ public class Briss extends JFrame implements ActionListener,
 		loadBtn.addActionListener(this);
 
 		cropBtn = new JButton(CROP);
-		cropBtn.setEnabled(true);
 		cropBtn.setPreferredSize(new Dimension(300, 30));
 		cropBtn.addActionListener(this);
 		cropBtn.setEnabled(false);
+
+		maxWBtn = new JButton(MAXIMIZE_WIDTH);
+		maxWBtn.setEnabled(false);
+		maxWBtn.setPreferredSize(new Dimension(300, 30));
+		maxWBtn.addActionListener(this);
+
+		maxHBtn = new JButton(MAXIMIZE_HEIGHT);
+		maxHBtn.setEnabled(false);
+		maxHBtn.setPreferredSize(new Dimension(300, 30));
+		maxHBtn.addActionListener(this);
 
 		progressBar = new JProgressBar(0, 100);
 		progressBar.setStringPainted(true);
@@ -176,6 +188,18 @@ public class Briss extends JFrame implements ActionListener,
 		c = new GridBagConstraints();
 		c.gridx = 0;
 		c.gridy = 2;
+		c.fill = GridBagConstraints.BOTH;
+		c.weightx = 0.5;
+		add(maxWBtn, c);
+		c = new GridBagConstraints();
+		c.gridx = 1;
+		c.gridy = 2;
+		c.fill = GridBagConstraints.BOTH;
+		c.weightx = 0.5;
+		add(maxHBtn, c);
+		c = new GridBagConstraints();
+		c.gridx = 0;
+		c.gridy = 3;
 		c.gridwidth = 2;
 		c.fill = GridBagConstraints.BOTH;
 		add(progressBar, c);
@@ -190,7 +214,41 @@ public class Briss extends JFrame implements ActionListener,
 
 	@Override
 	public void actionPerformed(ActionEvent aE) {
-		if (aE.getActionCommand().equals(LOAD)) {
+		if (aE.getActionCommand().equals(MAXIMIZE_HEIGHT)) {
+			// maximize to height
+			// search for maximum height
+			int maxHeight = -1;
+			for (MergedPanel mp : mergedPanels) {
+				int mpMax = mp.getHeighestRect();
+				if (maxHeight < mpMax) {
+					maxHeight = mpMax;
+				}
+			}
+			// set maximum height to all rectangles
+			if (maxHeight == -1)
+				return;
+			for (MergedPanel mp : mergedPanels) {
+				mp.setSelCropHeight(maxHeight);
+			}
+
+		} else if (aE.getActionCommand().equals(MAXIMIZE_WIDTH)) {
+			// maximize to width
+			// search for maximum width
+			int maxWidth = -1;
+			for (MergedPanel mp : mergedPanels) {
+				int mpMax = mp.getWidestRect();
+				if (maxWidth < mpMax) {
+					maxWidth = mpMax;
+				}
+			}
+			// set maximum widt to all rectangles
+			if (maxWidth == -1)
+				return;
+			for (MergedPanel mp : mergedPanels) {
+				mp.setSelCropWidth(maxWidth);
+			}
+
+		} else if (aE.getActionCommand().equals(LOAD)) {
 			File loadFile = loadPDF(null, false);
 			if (loadFile != null) {
 				origFile = loadFile;
@@ -210,6 +268,8 @@ public class Briss extends JFrame implements ActionListener,
 					origName.length() - 4)
 					+ "_cropped.pdf";
 			croppedFile = loadPDF(recommendedName, true);
+			if (croppedFile == null)
+				return;
 			if (!croppedFile.exists()) {
 				try {
 					croppedFile.createNewFile();
@@ -245,6 +305,7 @@ public class Briss extends JFrame implements ActionListener,
 			setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
 		}
 
+		@SuppressWarnings("unchecked")
 		@Override
 		protected Void doInBackground() {
 
@@ -254,6 +315,7 @@ public class Briss extends JFrame implements ActionListener,
 				// first make a copy containing the right amount of pages
 				reader = new PdfReader(origFile.getAbsolutePath());
 				Document document = new Document();
+				HashMap metaInfo = reader.getInfo();
 
 				File tmpFile = File.createTempFile("cropped", ".pdf");
 				PdfSmartCopy pdfCopy = new PdfSmartCopy(document,
@@ -279,6 +341,7 @@ public class Briss extends JFrame implements ActionListener,
 
 				PdfStamper stamper = new PdfStamper(reader,
 						new FileOutputStream(croppedFile));
+				stamper.setMoreInfo(metaInfo);
 
 				PdfDictionary pageDict;
 				int newPageNumber = 1;
@@ -438,6 +501,7 @@ public class Briss extends JFrame implements ActionListener,
 			text.setBackground(Color.BLACK);
 			previewPanel.add(text, c);
 
+			mergedPanels = new ArrayList<MergedPanel>();
 			for (PDFPageCluster cluster : clusterToPageSet.keySet()) {
 				MergedPanel p = new MergedPanel(cluster);
 				c = new GridBagConstraints();
@@ -446,11 +510,14 @@ public class Briss extends JFrame implements ActionListener,
 				c.anchor = GridBagConstraints.CENTER;
 				c.insets = new Insets(4, 0, 4, 0);
 				previewPanel.add(p, c);
+				mergedPanels.add(p);
 			}
 			progressBar
 					.setString("PDF loaded - Select crop size and press crop");
 			cropBtn.setEnabled(true);
-			progressBar.setValue(0);
+			maxWBtn.setEnabled(true);
+			maxHBtn.setEnabled(true);
+			setProgress(0);
 			pack();
 		}
 
@@ -503,7 +570,7 @@ public class Briss extends JFrame implements ActionListener,
 			for (PDFPageCluster cluster : clusterToPageSet.keySet()) {
 				progressBar.setString("PDF analysed - creating cluster:"
 						+ clusterCounter++);
-				progressBar.setValue(0);
+				setProgress(0);
 
 				int pageCounter = 0;
 				for (Integer pageNumber : cluster.getPagesToMerge()) {
@@ -511,7 +578,7 @@ public class Briss extends JFrame implements ActionListener,
 							.getPageAsImage(pageNumber);
 					cluster.addImageToPreview(renderedPage);
 
-					int percent = (int) ((pageCounter++ / (float) cluster
+					int percent = (int) ((++pageCounter / (float) cluster
 							.getPagesToMerge().size()) * 100);
 					setProgress(percent);
 				}

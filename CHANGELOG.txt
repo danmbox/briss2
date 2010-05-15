@@ -19,6 +19,15 @@
 ################################################
 CHANGELOG  - BRISS  
 ################################################
+
+* 0.0.7 (released 15.03.2010)
+ * Meta information is copied to the cropped file
+ * Small visual fix in progress bar
+ * Ghost rectangle shows the size of the last drawn crop rectangle (for people who want to have equally sized pages)
+ * Dragging of crop rectangles (press and hold the mouse button inside a crop rectangle)
+ * Single removal of crop rectangles by pressing the right mouse button inside the rectangle to be deleted
+ * Selected crop rectangles (=>ctrl+left mouse click into the rectangle) can be sized to the maximum of all selected widths/heights.
+
 * 0.0.6 (released 13.05.2010)
  * Added multiple column support (actually it's a multiple rectangle capability)
  * Integrated a small description how to use the software.

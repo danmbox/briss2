@@ -35,7 +35,6 @@ public class PDFPageCluster {
 	private WritableRaster raster = null;
 	private double[][] imageData = null;
 	private List<Float[]> cropRatiosList = new ArrayList<Float[]>();
-//	private float[] ratios;
 
 	private boolean evenPage;
 	private int pageWidth;
@@ -112,6 +111,7 @@ public class PDFPageCluster {
 	public void clearRatios() {
 		cropRatiosList.clear();
 	}
+
 	public void addRatios(Float[] ratios) {
 		cropRatiosList.add(ratios);
 	}
