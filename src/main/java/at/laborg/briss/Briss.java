@@ -60,6 +60,7 @@ import com.lowagie.text.pdf.PdfNumber;
 import com.lowagie.text.pdf.PdfReader;
 import com.lowagie.text.pdf.PdfSmartCopy;
 import com.lowagie.text.pdf.PdfStamper;
+import com.lowagie.text.pdf.SimpleBookmark;
 
 /**
  * 
@@ -323,10 +324,13 @@ public class Briss extends JFrame implements ActionListener,
 				document.open();
 				int origPageCount = reader.getNumberOfPages();
 				PdfImportedPage page;
+				List bookmarks = null;
 
 				for (int pageNumber = 1; pageNumber <= origPageCount; pageNumber++) {
 					PDFPageCluster clusterInfo = clustersMapping[pageNumber - 1];
 					page = pdfCopy.getImportedPage(reader, pageNumber);
+					bookmarks = SimpleBookmark.getBookmark(reader);
+//					SimpleBookmark.s
 					pdfCopy.addPage(page);
 					for (int j = 1; j < clusterInfo.getRatiosList().size(); j++) {
 						pdfCopy.addPage(page);
@@ -342,6 +346,7 @@ public class Briss extends JFrame implements ActionListener,
 				PdfStamper stamper = new PdfStamper(reader,
 						new FileOutputStream(croppedFile));
 				stamper.setMoreInfo(metaInfo);
+
 
 				PdfDictionary pageDict;
 				int newPageNumber = 1;
@@ -381,10 +386,15 @@ public class Briss extends JFrame implements ActionListener,
 						// increment the pagenumber
 						newPageNumber++;
 					}
+					int[] range = new int[2];
+					range[0] = newPageNumber-1;
+					range[1] = origPageCount + (newPageNumber-origPageNumber);
+					SimpleBookmark.shiftPageNumbers(bookmarks, clusterInfo.getRatiosList().size()-1, range);
 
 					int percent = (int) ((origPageNumber / (float) origPageCount) * 100);
 					setProgress(percent);
 				}
+				stamper.setOutlines(bookmarks);
 				stamper.close();
 			} catch (IOException e) {
 				// TODO Auto-generated catch block

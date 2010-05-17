@@ -44,7 +44,7 @@ Starting the application
 ########################
 You can run the application by executing following command in terminal:
 
-java -jar briss-0.0.7.jar
+java -jar briss-0.0.8.jar
 
 ########################
 Instructions
