@@ -1,0 +1,71 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<!--
+		mvn install:install-file -DgroupId=multivalent
+		-DartifactId=multivalent -Dpackaging=jar -Dversion=20091027
+		-Dfile=/dirtodownload/Multivalent20091027.jar 
+		
+		mvn install:install-file
+		-DgroupId=jpedal -DartifactId=jpedal -Dpackaging=jar -Dversion=4.14b25
+		-Dfile=/home/gerhard/Downloads/jpedal_lgpl.jar
+	-->
+	<groupId>at.laborg</groupId>
+	<artifactId>briss</artifactId>
+	<version>0.0.7</version>
+	<packaging>jar</packaging>
+	<name>briss</name>
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+	</properties>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jar-plugin</artifactId>
+				<version>2.3</version>
+				<configuration>
+					<archive>
+						<manifest>
+							<addClasspath>true</addClasspath>
+							<mainClass>at.laborg.briss.Briss</mainClass>
+						</manifest>
+					</archive>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<version>2.2-beta-5</version>
+				<configuration>
+					<descriptors>
+						<descriptor>src/assemble/brissassemble.xml</descriptor>
+					</descriptors>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+	<dependencies>
+		<dependency>
+			<groupId>com.lowagie</groupId>
+			<artifactId>itext</artifactId>
+			<version>2.1.7</version>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>3.8.1</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>jpedal</groupId>
+			<artifactId>jpedal</artifactId>
+			<version>4.14b25</version>
+			<scope>runtime</scope>
+		</dependency>
+	</dependencies>
+	<modules>
+	</modules>
+</project>
