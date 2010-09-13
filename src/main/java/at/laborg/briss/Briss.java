@@ -84,6 +84,7 @@ public class Briss extends JFrame implements ActionListener,
 	private JButton loadBtn, cropBtn, maxWBtn, maxHBtn;
 	private ClusterPagesTask clusterTask;
 	private CropPDFTask cropTask;
+	private File lastOpenDir;
 	private File origFile = null;
 	private File croppedFile = null;
 	private List<MergedPanel> mergedPanels = null;
@@ -95,7 +96,9 @@ public class Briss extends JFrame implements ActionListener,
 
 	private File loadPDF(String recommendation, boolean saveDialog) {
 
-		JFileChooser fc = new JFileChooser();
+		JFileChooser fc = lastOpenDir == null ? new JFileChooser()
+				: new JFileChooser(lastOpenDir);
+
 		if (recommendation != null) {
 			File recommendedFile = new File(recommendation);
 			fc.setSelectedFile(recommendedFile);
@@ -114,6 +117,7 @@ public class Briss extends JFrame implements ActionListener,
 				return null;
 			}
 		});
+
 		int retval;
 		if (saveDialog) {
 			retval = fc.showSaveDialog(this);
@@ -122,8 +126,11 @@ public class Briss extends JFrame implements ActionListener,
 		}
 
 		if (retval == JFileChooser.APPROVE_OPTION) {
+			if (fc.getSelectedFile() != null)
+				lastOpenDir = fc.getSelectedFile().getParentFile();
 			return fc.getSelectedFile();
 		}
+
 		return null;
 	}
 
@@ -330,7 +337,7 @@ public class Briss extends JFrame implements ActionListener,
 					PDFPageCluster clusterInfo = clustersMapping[pageNumber - 1];
 					page = pdfCopy.getImportedPage(reader, pageNumber);
 					bookmarks = SimpleBookmark.getBookmark(reader);
-//					SimpleBookmark.s
+					// SimpleBookmark.s
 					pdfCopy.addPage(page);
 					for (int j = 1; j < clusterInfo.getRatiosList().size(); j++) {
 						pdfCopy.addPage(page);
@@ -346,7 +353,6 @@ public class Briss extends JFrame implements ActionListener,
 				PdfStamper stamper = new PdfStamper(reader,
 						new FileOutputStream(croppedFile));
 				stamper.setMoreInfo(metaInfo);
-
 
 				PdfDictionary pageDict;
 				int newPageNumber = 1;
@@ -387,9 +393,10 @@ public class Briss extends JFrame implements ActionListener,
 						newPageNumber++;
 					}
 					int[] range = new int[2];
-					range[0] = newPageNumber-1;
-					range[1] = origPageCount + (newPageNumber-origPageNumber);
-					SimpleBookmark.shiftPageNumbers(bookmarks, clusterInfo.getRatiosList().size()-1, range);
+					range[0] = newPageNumber - 1;
+					range[1] = origPageCount + (newPageNumber - origPageNumber);
+					SimpleBookmark.shiftPageNumbers(bookmarks, clusterInfo
+							.getRatiosList().size() - 1, range);
 
 					int percent = (int) ((origPageNumber / (float) origPageCount) * 100);
 					setProgress(percent);

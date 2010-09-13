@@ -29,6 +29,7 @@ public class PDFPageCluster {
 
 	private final static int MERGE_VARIABILITY = 30;
 	private final static int MAX_MERGE_PAGES = 20;
+	private final static int MAX_PAGE_HEIGHT = 600;
 	private List<Integer> pagesToMerge;
 	private List<Integer> allPages;
 	private BufferedImage previewImage;
@@ -50,20 +51,19 @@ public class PDFPageCluster {
 
 	public void addImageToPreview(BufferedImage imageToAdd) {
 		if (previewImage == null) {
+			int pageHeight = imageToAdd.getHeight() > MAX_PAGE_HEIGHT ? MAX_PAGE_HEIGHT : imageToAdd.getHeight();
+			float scaleFactor = (float)pageHeight/imageToAdd.getHeight();
+			int pageWidth = (int) (imageToAdd.getWidth() * scaleFactor);
 			// create the first preview image
-			previewImage = new BufferedImage(imageToAdd.getWidth(), imageToAdd
-					.getHeight(), BufferedImage.TYPE_BYTE_GRAY);
-			previewImage.getGraphics().drawImage(imageToAdd, 0, 0, null);
+			previewImage = new BufferedImage(pageWidth, pageHeight, BufferedImage.TYPE_BYTE_GRAY);
+			previewImage.getGraphics().drawImage(scaleImage(imageToAdd,pageWidth,pageHeight), 0, 0, null);
 			raster = previewImage.getRaster().createCompatibleWritableRaster();
 			imageData = new double[previewImage.getWidth()][previewImage
 					.getHeight()];
-			average(scaleImage(imageToAdd, previewImage.getWidth(),
-					previewImage.getHeight()), imageData);
-		} else {
-			// scaleimage to the first added
-			average(scaleImage(imageToAdd, previewImage.getWidth(),
-					previewImage.getHeight()), imageData);
 		}
+		// scale image to the first added
+		average(scaleImage(imageToAdd, previewImage.getWidth(), previewImage
+				.getHeight()), imageData);
 	}
 
 	private static void average(BufferedImage image, double[][] values) {
