@@ -49,18 +49,18 @@ import javax.swing.filechooser.FileFilter;
 
 import org.jpedal.PdfDecoder;
 
-import com.lowagie.text.Document;
-import com.lowagie.text.DocumentException;
-import com.lowagie.text.Rectangle;
-import com.lowagie.text.pdf.PdfArray;
-import com.lowagie.text.pdf.PdfDictionary;
-import com.lowagie.text.pdf.PdfImportedPage;
-import com.lowagie.text.pdf.PdfName;
-import com.lowagie.text.pdf.PdfNumber;
-import com.lowagie.text.pdf.PdfReader;
-import com.lowagie.text.pdf.PdfSmartCopy;
-import com.lowagie.text.pdf.PdfStamper;
-import com.lowagie.text.pdf.SimpleBookmark;
+import com.itextpdf.text.Document;
+import com.itextpdf.text.DocumentException;
+import com.itextpdf.text.Rectangle;
+import com.itextpdf.text.pdf.PdfArray;
+import com.itextpdf.text.pdf.PdfDictionary;
+import com.itextpdf.text.pdf.PdfImportedPage;
+import com.itextpdf.text.pdf.PdfName;
+import com.itextpdf.text.pdf.PdfNumber;
+import com.itextpdf.text.pdf.PdfReader;
+import com.itextpdf.text.pdf.PdfSmartCopy;
+import com.itextpdf.text.pdf.PdfStamper;
+import com.itextpdf.text.pdf.SimpleBookmark;
 
 /**
  * 
@@ -346,7 +346,7 @@ public class Briss extends JFrame implements ActionListener,
 				document.close();
 				pdfCopy.close();
 
-				// no crop all pages according to their ratios
+				// now crop all pages according to their ratios
 
 				reader = new PdfReader(tmpFile.getAbsolutePath());
 
@@ -359,7 +359,7 @@ public class Briss extends JFrame implements ActionListener,
 				for (int origPageNumber = 1; origPageNumber <= origPageCount; origPageNumber++) {
 					PDFPageCluster clusterInfo = clustersMapping[origPageNumber - 1];
 
-					// if no cop was selected do nothing
+					// if no crop was selected do nothing
 					if (clusterInfo.getRatiosList().size() == 0) {
 						newPageNumber++;
 						continue;
@@ -372,8 +372,6 @@ public class Briss extends JFrame implements ActionListener,
 						List<Rectangle> boxes = new ArrayList<Rectangle>();
 						boxes.add(reader.getBoxSize(newPageNumber, "media"));
 						boxes.add(reader.getBoxSize(newPageNumber, "crop"));
-						boxes.add(reader.getBoxSize(newPageNumber, "trim"));
-						boxes.add(reader.getBoxSize(newPageNumber, "bleed"));
 						int rotation = reader.getPageRotation(newPageNumber);
 
 						Rectangle scaledBox = calculateScaledRectangle(boxes,
@@ -387,8 +385,6 @@ public class Briss extends JFrame implements ActionListener,
 
 						pageDict.put(PdfName.CROPBOX, scaleBoxArray);
 						pageDict.put(PdfName.MEDIABOX, scaleBoxArray);
-						pageDict.put(PdfName.TRIMBOX, scaleBoxArray);
-						pageDict.put(PdfName.BLEEDBOX, scaleBoxArray);
 						// increment the pagenumber
 						newPageNumber++;
 					}
@@ -414,6 +410,12 @@ public class Briss extends JFrame implements ActionListener,
 		}
 	}
 
+	/*
+	 * Moment ! JPdedal rendert die Seite Anhand der Crop-Box (und wenn diese
+	 * nicht verfügbar ist wird wohl die MediaBox herangezogen). Wenn man nun
+	 * die skalierung anhand der kleinsten!!! Box macht muss das ein Fehler
+	 * sein...
+	 */
 	private Rectangle calculateScaledRectangle(List<Rectangle> boxes,
 			Float[] ratios, int rotation) {
 		if (ratios == null || boxes.size() == 0) {
@@ -545,6 +547,7 @@ public class Briss extends JFrame implements ActionListener,
 
 			for (int i = 1; i <= pageCount; i++) {
 				Rectangle layoutBox = reader.getBoxSize(i, "crop");
+
 				if (layoutBox == null) {
 					layoutBox = reader.getBoxSize(i, "media");
 				}
@@ -584,6 +587,7 @@ public class Briss extends JFrame implements ActionListener,
 			// create a PdfDecoder using Jpedal library
 			PdfDecoder decode_pdf = new PdfDecoder(true);
 			decode_pdf.openPdfFile(origFile.getAbsolutePath());
+
 			for (PDFPageCluster cluster : clusterToPageSet.keySet()) {
 				progressBar.setString("PDF analysed - creating cluster:"
 						+ clusterCounter++);

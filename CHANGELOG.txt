@@ -20,6 +20,12 @@
 CHANGELOG  - BRISS  
 ################################################
 
+* 0.0.10 (release 01.10.2010)
+ * fixed issure where a trim or bleed box would influence the cropping behaviour
+ * smaller file size through newer libraries
+ 	* itext
+ 	* jpedal 
+
 * 0.0.9 (released 08.06.2010)
  * Maximal pageheight of preview image is set to 600pixel
  * last directory is being remembered 

@@ -51,12 +51,15 @@ public class PDFPageCluster {
 
 	public void addImageToPreview(BufferedImage imageToAdd) {
 		if (previewImage == null) {
-			int pageHeight = imageToAdd.getHeight() > MAX_PAGE_HEIGHT ? MAX_PAGE_HEIGHT : imageToAdd.getHeight();
-			float scaleFactor = (float)pageHeight/imageToAdd.getHeight();
+			int pageHeight = imageToAdd.getHeight() > MAX_PAGE_HEIGHT ? MAX_PAGE_HEIGHT
+					: imageToAdd.getHeight();
+			float scaleFactor = (float) pageHeight / imageToAdd.getHeight();
 			int pageWidth = (int) (imageToAdd.getWidth() * scaleFactor);
 			// create the first preview image
-			previewImage = new BufferedImage(pageWidth, pageHeight, BufferedImage.TYPE_BYTE_GRAY);
-			previewImage.getGraphics().drawImage(scaleImage(imageToAdd,pageWidth,pageHeight), 0, 0, null);
+			previewImage = new BufferedImage(pageWidth, pageHeight,
+					BufferedImage.TYPE_BYTE_GRAY);
+			previewImage.getGraphics().drawImage(
+					scaleImage(imageToAdd, pageWidth, pageHeight), 0, 0, null);
 			raster = previewImage.getRaster().createCompatibleWritableRaster();
 			imageData = new double[previewImage.getWidth()][previewImage
 					.getHeight()];
