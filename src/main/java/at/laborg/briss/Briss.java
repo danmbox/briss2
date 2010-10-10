@@ -33,13 +33,17 @@ import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
@@ -180,6 +184,7 @@ public class Briss extends JFrame implements ActionListener,
 		JScrollPane scrollPane = new JScrollPane(previewPanel,
 				JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
 				JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+		scrollPane.getVerticalScrollBar().setUnitIncrement(30);
 		add(scrollPane, c);
 		c = new GridBagConstraints();
 		c.gridx = 0;
@@ -213,6 +218,7 @@ public class Briss extends JFrame implements ActionListener,
 		add(progressBar, c);
 		pack();
 		setVisible(true);
+		this.setExtendedState(JFrame.MAXIMIZED_VERT);
 
 	}
 
@@ -410,12 +416,6 @@ public class Briss extends JFrame implements ActionListener,
 		}
 	}
 
-	/*
-	 * Moment ! JPdedal rendert die Seite Anhand der Crop-Box (und wenn diese
-	 * nicht verfügbar ist wird wohl die MediaBox herangezogen). Wenn man nun
-	 * die skalierung anhand der kleinsten!!! Box macht muss das ein Fehler
-	 * sein...
-	 */
 	private Rectangle calculateScaledRectangle(List<Rectangle> boxes,
 			Float[] ratios, int rotation) {
 		if (ratios == null || boxes.size() == 0) {
@@ -487,6 +487,7 @@ public class Briss extends JFrame implements ActionListener,
 	private class ClusterPagesTask extends SwingWorker<PDFPageCluster[], Void> {
 
 		private int pageCount;
+		private Set<Integer> excludePageSet;
 
 		public ClusterPagesTask() {
 			super();
@@ -494,12 +495,48 @@ public class Briss extends JFrame implements ActionListener,
 				PdfReader reader = new PdfReader(origFile.getAbsolutePath());
 				progressBar.setString("Analysing PDF pages");
 				pageCount = reader.getNumberOfPages();
+				excludePageSet = getExcludedPages();
 				clustersMapping = new PDFPageCluster[pageCount];
 				clusterToPageSet = new HashMap<PDFPageCluster, List<Integer>>();
 			} catch (IOException e1) {
 				// TODO Auto-generated catch block
 				e1.printStackTrace();
 			}
+		}
+
+		private Set<Integer> getExcludedPages() {
+			boolean inputIsValid = false;
+			String rememberInputString = "";
+			// show dialog
+			while (!inputIsValid) {
+				String inputString = JOptionPane
+						.showInputDialog(
+								"Enter pages to be excluded from merging (e.g.: \"1-4;6;9\").\n" +
+								"First page has number: 1\n" +
+								"If you don't know what you should do just press \"Cancel\"",
+								rememberInputString);
+				rememberInputString = inputString;
+
+				if (inputString == null || inputString.equals("")) {
+					return null;
+				}
+
+				try {
+					return PageNumberParser.parsePageNumber(inputString);
+				} catch (ParseException e) {
+					JOptionPane.showMessageDialog(null, e.getMessage(),
+							"Input Error", JOptionPane.ERROR_MESSAGE);
+				}
+
+			}
+			return null;
+		}
+
+		private <T extends Comparable<? super T>> List<T> asSortedList(
+				Collection<T> c) {
+			List<T> list = new ArrayList<T>(c);
+			java.util.Collections.sort(list);
+			return list;
 		}
 
 		@Override
@@ -521,7 +558,11 @@ public class Briss extends JFrame implements ActionListener,
 			previewPanel.add(text, c);
 
 			mergedPanels = new ArrayList<MergedPanel>();
-			for (PDFPageCluster cluster : clusterToPageSet.keySet()) {
+
+			List<PDFPageCluster> tmpClusterList = asSortedList(clusterToPageSet
+					.keySet());
+
+			for (PDFPageCluster cluster : tmpClusterList) {
 				MergedPanel p = new MergedPanel(cluster);
 				c = new GridBagConstraints();
 				c.gridx = 0;
@@ -551,9 +592,19 @@ public class Briss extends JFrame implements ActionListener,
 				if (layoutBox == null) {
 					layoutBox = reader.getBoxSize(i, "media");
 				}
+
 				// create Cluster
+				// if the pagenumber should be excluded then use it as a
+				// discriminating parameter, else use default value
+				
+				int pageNumber = -1;
+				if (excludePageSet != null && excludePageSet.contains(i)) {
+					pageNumber = i;
+				}
+
 				PDFPageCluster tmpCluster = new PDFPageCluster(i % 2 == 0,
-						(int) layoutBox.getWidth(), (int) layoutBox.getHeight());
+						(int) layoutBox.getWidth(),
+						(int) layoutBox.getHeight(), pageNumber);
 
 				if (clusterToPageSet.containsKey(tmpCluster)) {
 					// cluster exists
@@ -594,14 +645,23 @@ public class Briss extends JFrame implements ActionListener,
 				setProgress(0);
 
 				int pageCounter = 0;
-				for (Integer pageNumber : cluster.getPagesToMerge()) {
-					BufferedImage renderedPage = decode_pdf
-							.getPageAsImage(pageNumber);
-					cluster.addImageToPreview(renderedPage);
+				try {
+					for (Integer pageNumber : cluster.getPagesToMerge()) {
+						// TODO jpedal isn't able to render big images
+						// correctly, so let's check if the image is big an
+						// throw it away
+						if (cluster.isFunctional()) {
+							BufferedImage renderedPage = decode_pdf
+									.getPageAsImage(pageNumber);
+							cluster.addImageToPreview(renderedPage);
+						}
+						int percent = (int) ((++pageCounter / (float) cluster
+								.getPagesToMerge().size()) * 100);
 
-					int percent = (int) ((++pageCounter / (float) cluster
-							.getPagesToMerge().size()) * 100);
-					setProgress(percent);
+						setProgress(percent);
+					}
+				} catch (Exception e) {
+					System.out.println(e);
 				}
 
 			}

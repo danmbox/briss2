@@ -20,6 +20,12 @@
 CHANGELOG  - BRISS  
 ################################################
 
+* 0.0.11 (release 10.10.2010)
+ * Exclude pages from merging
+ * Merged blocks are now sorted according to their lowest page number
+ * Faster scrolling (mouse)
+ * Fixed an issue where huge pages would cause BRISS to crash
+
 * 0.0.10 (release 01.10.2010)
  * fixed issure where a trim or bleed box would influence the cropping behaviour
  * smaller file size through newer libraries

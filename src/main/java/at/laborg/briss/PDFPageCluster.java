@@ -18,6 +18,8 @@
  */
 package at.laborg.briss;
 
+import java.awt.Color;
+import java.awt.Font;
 import java.awt.Graphics2D;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
@@ -25,11 +27,12 @@ import java.awt.image.WritableRaster;
 import java.util.ArrayList;
 import java.util.List;
 
-public class PDFPageCluster {
+public class PDFPageCluster implements Comparable<PDFPageCluster> {
 
 	private final static int MERGE_VARIABILITY = 30;
 	private final static int MAX_MERGE_PAGES = 20;
 	private final static int MAX_PAGE_HEIGHT = 600;
+	private final static int MAX_IMAGE_RENDER_SIZE = 2000 * 2000;
 	private List<Integer> pagesToMerge;
 	private List<Integer> allPages;
 	private BufferedImage previewImage;
@@ -37,19 +40,26 @@ public class PDFPageCluster {
 	private double[][] imageData = null;
 	private List<Float[]> cropRatiosList = new ArrayList<Float[]>();
 
+	private int excludedPageNumber = -1;
+	
+	private boolean renderable;
 	private boolean evenPage;
 	private int pageWidth;
 	private int pageHeight;
 
-	public PDFPageCluster(boolean isEvenPage, int pageWidth, int pageHeight) {
+	public PDFPageCluster(boolean isEvenPage, int pageWidth, int pageHeight, int excludedPageNumber) {
 		super();
 		this.pageWidth = pageWidth;
 		this.pageHeight = pageHeight;
+		this.renderable = pageWidth * pageHeight < MAX_IMAGE_RENDER_SIZE;
 		this.evenPage = isEvenPage;
+		this.excludedPageNumber = excludedPageNumber;
 		this.pagesToMerge = new ArrayList<Integer>();
 	}
 
 	public void addImageToPreview(BufferedImage imageToAdd) {
+		if (!renderable)
+			return;
 		if (previewImage == null) {
 			int pageHeight = imageToAdd.getHeight() > MAX_PAGE_HEIGHT ? MAX_PAGE_HEIGHT
 					: imageToAdd.getHeight();
@@ -91,7 +101,34 @@ public class PDFPageCluster {
 		return bdest;
 	}
 
+	private static BufferedImage getUnrenderableImage() {
+		int width = 200;
+		int height = 200;
+
+		// Create buffered image that does not support transparency
+		BufferedImage bimage = new BufferedImage(width, height,
+				BufferedImage.TYPE_INT_RGB);
+
+		Graphics2D g2d = bimage.createGraphics();
+
+		// Draw on the image
+		g2d.setColor(Color.WHITE);
+		g2d.drawRect(5, 5, 190, 190);
+
+		Font font = new Font("Sansserif", Font.BOLD  | Font.PLAIN, 22);
+		g2d.setFont(font);
+		
+		g2d.setColor(Color.WHITE);
+		g2d.drawString("Image to Big!", 10, 110);
+		
+		g2d.dispose();
+		return bimage;
+	}
+
 	public BufferedImage getPreviewImage() {
+		if (!renderable) {
+			return getUnrenderableImage();
+		}
 		for (int k = 0; k < previewImage.getHeight(); ++k) {
 			for (int j = 0; j < previewImage.getWidth(); ++j) {
 				raster.setSample(j, k, 0, Math.round(imageData[j][k]
@@ -124,6 +161,7 @@ public class PDFPageCluster {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + (evenPage ? 1231 : 1237);
+		result = prime * result + excludedPageNumber;
 		result = prime * result + getRoundedPageHeight();
 		result = prime * result + getRoundedPageWidth();
 		return result;
@@ -140,13 +178,18 @@ public class PDFPageCluster {
 		PDFPageCluster other = (PDFPageCluster) obj;
 		if (evenPage != other.evenPage)
 			return false;
+		if (excludedPageNumber != other.excludedPageNumber)
+			return false;
 		if (getRoundedPageHeight() != other.getRoundedPageHeight())
 			return false;
 		if (getRoundedPageWidth() != other.getRoundedPageWidth())
 			return false;
 		return true;
 	}
-
+	
+	
+	
+	
 	public boolean isEvenPage() {
 		return evenPage;
 	}
@@ -184,6 +227,26 @@ public class PDFPageCluster {
 
 	public List<Integer> getPagesToMerge() {
 		return pagesToMerge;
+	}
+
+	public boolean isFunctional() {
+		return renderable;
+	}
+
+	@Override
+	public int compareTo(PDFPageCluster that) {
+		
+		return this.getFirstPage() - that.getFirstPage();
+	}
+	
+	private int getFirstPage() {
+		int small = Integer.MAX_VALUE;
+		for (Integer tmp : allPages) {
+			if (tmp < small) {
+				small = tmp;
+			}
+		}
+		return small;
 	}
 
 }

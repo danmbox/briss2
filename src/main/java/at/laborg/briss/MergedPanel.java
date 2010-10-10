@@ -56,19 +56,20 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 
 	private final List<CropRect> crops = new ArrayList<CropRect>();
 	private final PDFPageCluster cluster;
-	private final BufferedImage img;
-
+	private BufferedImage img;
+	
 	public MergedPanel(PDFPageCluster cluster) {
 		super();
 		this.cluster = cluster;
 		this.img = cluster.getPreviewImage();
 		setPreferredSize(new Dimension(img.getWidth(), img.getHeight()));
+		if (cluster.isFunctional()) {
 		addMouseMotionListener(this);
 		addMouseListener(this);
-
+		}
 		setToolTipText(createInfoString(cluster));
 	}
-
+	
 	private String createInfoString(PDFPageCluster cluster) {
 		StringBuilder sb = new StringBuilder();
 		sb.append("<html>");

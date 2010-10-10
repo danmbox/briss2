@@ -335,7 +335,7 @@ public class Briss extends JFrame implements ActionListener,
 				document.close();
 				pdfCopy.close();
 
-				// no crop all pages according to their ratios
+				// now crop all pages according to their ratios
 
 				reader = new PdfReader(tmpFile.getAbsolutePath());
 
