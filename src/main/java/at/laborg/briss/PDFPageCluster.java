@@ -29,9 +29,9 @@ import java.util.List;
 
 public class PDFPageCluster implements Comparable<PDFPageCluster> {
 
-	private final static int MERGE_VARIABILITY = 30;
+	private final static int MERGE_VARIABILITY = 20;
 	private final static int MAX_MERGE_PAGES = 20;
-	private final static int MAX_PAGE_HEIGHT = 600;
+	private final static int MAX_PAGE_HEIGHT = 900;
 	private final static int MAX_IMAGE_RENDER_SIZE = 2000 * 2000;
 	private List<Integer> pagesToMerge;
 	private List<Integer> allPages;
@@ -41,13 +41,14 @@ public class PDFPageCluster implements Comparable<PDFPageCluster> {
 	private List<Float[]> cropRatiosList = new ArrayList<Float[]>();
 
 	private int excludedPageNumber = -1;
-	
+
 	private boolean renderable;
 	private boolean evenPage;
 	private int pageWidth;
 	private int pageHeight;
 
-	public PDFPageCluster(boolean isEvenPage, int pageWidth, int pageHeight, int excludedPageNumber) {
+	public PDFPageCluster(boolean isEvenPage, int pageWidth, int pageHeight,
+			int excludedPageNumber) {
 		super();
 		this.pageWidth = pageWidth;
 		this.pageHeight = pageHeight;
@@ -115,12 +116,12 @@ public class PDFPageCluster implements Comparable<PDFPageCluster> {
 		g2d.setColor(Color.WHITE);
 		g2d.drawRect(5, 5, 190, 190);
 
-		Font font = new Font("Sansserif", Font.BOLD  | Font.PLAIN, 22);
+		Font font = new Font("Sansserif", Font.BOLD | Font.PLAIN, 22);
 		g2d.setFont(font);
-		
+
 		g2d.setColor(Color.WHITE);
 		g2d.drawString("Image to Big!", 10, 110);
-		
+
 		g2d.dispose();
 		return bimage;
 	}
@@ -186,10 +187,7 @@ public class PDFPageCluster implements Comparable<PDFPageCluster> {
 			return false;
 		return true;
 	}
-	
-	
-	
-	
+
 	public boolean isEvenPage() {
 		return evenPage;
 	}
@@ -233,12 +231,11 @@ public class PDFPageCluster implements Comparable<PDFPageCluster> {
 		return renderable;
 	}
 
-	@Override
 	public int compareTo(PDFPageCluster that) {
-		
+
 		return this.getFirstPage() - that.getFirstPage();
 	}
-	
+
 	private int getFirstPage() {
 		int small = Integer.MAX_VALUE;
 		for (Integer tmp : allPages) {

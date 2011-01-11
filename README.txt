@@ -44,7 +44,7 @@ Starting the application
 ########################
 You can run the application by executing following command in terminal:
 
-java -jar briss-0.0.10.jar
+java -jar briss-0.0.12.jar
 
 ########################
 Instructions
@@ -60,3 +60,11 @@ Instructions
     down CTRL + left click into rectangle to select. All crop rectangles will be
     resized to the biggest one, either on width or height.
 3) Start the cropping by pressing "Crop" and specify the destination of the cropped pdf.
+
+########################
+Problems
+########################
+* If you want to crop really big files it might be necessary to start briss with 
+an additional parameter: "-Xms128m -Xmx1024m" (complete call would look like: 
+"java -Xms128m -Xmx1024m -jar briss-0.0.11.jar")
+* At the moment Briss can't deal with JP2000 Images.

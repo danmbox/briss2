@@ -20,6 +20,12 @@
 CHANGELOG  - BRISS  
 ################################################
 
+* 0.0.12 (release 11.01.2010)
+ * Added Icon (thx to joão ziliotto)
+ * Reworked the GUI
+ * updated iText and JPedal libraries
+ * included a preview button
+
 * 0.0.11 (release 10.10.2010)
  * Exclude pages from merging
  * Merged blocks are now sorted according to their lowest page number

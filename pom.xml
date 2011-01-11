@@ -2,19 +2,14 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<!--
-		mvn install:install-file -DgroupId=multivalent
-		-DartifactId=multivalent -Dpackaging=jar -Dversion=20091027
-		-Dfile=/dirtodownload/Multivalent20091027.jar 
-		
-		mvn install:install-file
-		-DgroupId=jpedal -DartifactId=jpedal -Dpackaging=jar -Dversion=4.37b36
+		 mvn install:install-file
+		-DgroupId=jpedal -DartifactId=jpedal -Dpackaging=jar -Dversion=4.40b77
 		-Dfile=/home/gerhard/Downloads/jpedal_lgpl.jar
-		
-		
+
 	-->
 	<groupId>at.laborg</groupId>
 	<artifactId>briss</artifactId>
-	<version>0.0.11</version>
+	<version>0.0.12</version>
 	<packaging>jar</packaging>
 	<name>briss</name>
 	<properties>
@@ -37,6 +32,17 @@
 				</configuration>
 			</plugin>
 			<plugin>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>2.0.2</version>
+				<configuration>
+					<source>1.5</source>
+					<target>1.5</target>
+				</configuration>
+			</plugin>
+
+
+
+			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-assembly-plugin</artifactId>
 				<version>2.2-beta-5</version>
@@ -49,21 +55,21 @@
 		</plugins>
 	</build>
 	<repositories>
-    <repository>
-      <id>itextpdf.com</id>
-      <name>Maven Repository for iText</name>
-      <url>http://maven.itextpdf.com/</url>
-    </repository>
-  </repositories>
+		<repository>
+			<id>itextpdf.com</id>
+			<name>Maven Repository for iText</name>
+			<url>http://maven.itextpdf.com/</url>
+		</repository>
+	</repositories>
 	<dependencies>
-	<dependency>
+		<dependency>
 
-      <groupId>com.itextpdf</groupId>
-      <artifactId>itextpdf</artifactId>
-      <version>5.0.4</version>
-      <scope>runtime</scope>
+			<groupId>com.itextpdf</groupId>
+			<artifactId>itextpdf</artifactId>
+			<version>5.0.5</version>
+			<scope>runtime</scope>
 
-    </dependency>
+		</dependency>
 
 		<dependency>
 			<groupId>junit</groupId>
@@ -74,7 +80,7 @@
 		<dependency>
 			<groupId>jpedal</groupId>
 			<artifactId>jpedal</artifactId>
-			<version>4.37b36</version>
+			<version>4.40b77</version>
 			<scope>runtime</scope>
 		</dependency>
 	</dependencies>

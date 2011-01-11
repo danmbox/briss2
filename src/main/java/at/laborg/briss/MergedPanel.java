@@ -57,19 +57,19 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 	private final List<CropRect> crops = new ArrayList<CropRect>();
 	private final PDFPageCluster cluster;
 	private BufferedImage img;
-	
+
 	public MergedPanel(PDFPageCluster cluster) {
 		super();
 		this.cluster = cluster;
 		this.img = cluster.getPreviewImage();
 		setPreferredSize(new Dimension(img.getWidth(), img.getHeight()));
 		if (cluster.isFunctional()) {
-		addMouseMotionListener(this);
-		addMouseListener(this);
+			addMouseMotionListener(this);
+			addMouseListener(this);
 		}
 		setToolTipText(createInfoString(cluster));
 	}
-	
+
 	private String createInfoString(PDFPageCluster cluster) {
 		StringBuilder sb = new StringBuilder();
 		sb.append("<html>");
@@ -146,7 +146,6 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 
 	}
 
-	@Override
 	public void mouseDragged(MouseEvent mE) {
 		Point curPoint = mE.getPoint();
 
@@ -180,24 +179,19 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 		repaint();
 	}
 
-	@Override
 	public void mouseMoved(MouseEvent arg0) {
 
 	}
 
-	@Override
 	public void mouseClicked(MouseEvent mE) {
 	}
 
-	@Override
 	public void mouseEntered(MouseEvent arg0) {
 	}
 
-	@Override
 	public void mouseExited(MouseEvent arg0) {
 	}
 
-	@Override
 	public void mousePressed(MouseEvent mE) {
 		Point p = mE.getPoint();
 
@@ -281,7 +275,6 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 		repaint();
 	}
 
-	@Override
 	public void mouseReleased(MouseEvent arg0) {
 		// add croprectangle to list
 		if (curCrop != null) {

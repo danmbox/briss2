@@ -17,28 +17,30 @@ public class PageNumberParser {
 	 * @return
 	 * @throws ParseException
 	 */
-	public static Set<Integer> parsePageNumber(String input) throws ParseException {
-		
+	public static Set<Integer> parsePageNumber(String input)
+			throws ParseException {
+
 		Pattern p = Pattern.compile("[^0-9-;]");
 		Matcher m = p.matcher(input);
 
 		if (m.find()) {
-			throw new ParseException("Allowed characters: \"0-9\" \";\" \"-\" ",0);
+			throw new ParseException(
+					"Allowed characters: \"0-9\" \";\" \"-\" ", 0);
 		}
-		
+
 		// now tokenize by ;
-		StringTokenizer tokenizer = new StringTokenizer(input,";");
-		
-		
+		StringTokenizer tokenizer = new StringTokenizer(input, ";");
+
 		Set<Integer> pNS = new HashSet<Integer>();
 		while (tokenizer.hasMoreElements()) {
-			 pNS.addAll(extractPageNumbers(tokenizer.nextToken()));
+			pNS.addAll(extractPageNumbers(tokenizer.nextToken()));
 		}
 
 		return pNS;
 	}
 
-	private static Set<Integer> extractPageNumbers(String input) throws ParseException {
+	private static Set<Integer> extractPageNumbers(String input)
+			throws ParseException {
 
 		StringTokenizer tokenizer = new StringTokenizer(input, "-");
 		Set<Integer> returnSet = new HashSet<Integer>();
@@ -51,9 +53,10 @@ public class PageNumberParser {
 			int start = Integer.parseInt(tokenizer.nextToken());
 			int end = Integer.parseInt(tokenizer.nextToken());
 			if (start > end) {
-				throw new ParseException("End must be bigger than start in \""+ input +"\"", 0);
+				throw new ParseException("End must be bigger than start in \""
+						+ input + "\"", 0);
 			} else {
-				for (int i = start; i <= end;i++) {
+				for (int i = start; i <= end; i++) {
 					returnSet.add(i);
 				}
 				return returnSet;

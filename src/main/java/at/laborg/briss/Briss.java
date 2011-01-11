@@ -18,53 +18,45 @@
  */
 package at.laborg.briss;
 
+import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Desktop;
+import java.awt.Dialog;
 import java.awt.Dimension;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
+import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.image.BufferedImage;
+import java.awt.event.KeyEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
-import javax.swing.JButton;
+import javax.swing.ImageIcon;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
 import javax.swing.SwingWorker;
+import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.filechooser.FileFilter;
 
-import org.jpedal.PdfDecoder;
-
-import com.itextpdf.text.Document;
-import com.itextpdf.text.DocumentException;
-import com.itextpdf.text.Rectangle;
-import com.itextpdf.text.pdf.PdfArray;
-import com.itextpdf.text.pdf.PdfDictionary;
-import com.itextpdf.text.pdf.PdfImportedPage;
-import com.itextpdf.text.pdf.PdfName;
-import com.itextpdf.text.pdf.PdfNumber;
-import com.itextpdf.text.pdf.PdfReader;
-import com.itextpdf.text.pdf.PdfSmartCopy;
-import com.itextpdf.text.pdf.PdfStamper;
-import com.itextpdf.text.pdf.SimpleBookmark;
+import org.jpedal.exception.PdfException;
 
 /**
  * 
@@ -77,17 +69,24 @@ public class Briss extends JFrame implements ActionListener,
 
 	private static final String LOAD = "Load File";
 	private static final String CROP = "Crop PDF";
+	private static final String EXIT = "Exit";
 	private static final String MAXIMIZE_WIDTH = "Maximize to width";
 	private static final String MAXIMIZE_HEIGHT = "Maximize to height";
+	private static final String PREVIEW = "Preview";
+	private static final String DONATE = "Donate";
+	private static final String HELP = "Show help";
 
-	private PDFPageCluster[] clustersMapping;
-	private HashMap<PDFPageCluster, List<Integer>> clusterToPageSet;
+	private static final String DONATION_URI_STRING = "http://sourceforge.net/project/project_donations.php?group_id=320676";
+	private static final String RES_ICON_PATH = "/Briss_icon_032x032.gif";
 
+	private ClusterManager cM;
+
+	private JMenuBar menuBar;
 	private JPanel previewPanel;
 	private JProgressBar progressBar;
-	private JButton loadBtn, cropBtn, maxWBtn, maxHBtn;
+	private JMenuItem loadItem, cropItem, maxWItem, maxHItem, previewItem,
+			helpItem, donateItem;
 	private ClusterPagesTask clusterTask;
-	private CropPDFTask cropTask;
 	private File lastOpenDir;
 	private File origFile = null;
 	private File croppedFile = null;
@@ -141,84 +140,99 @@ public class Briss extends JFrame implements ActionListener,
 	private void init() {
 
 		setDefaultCloseOperation(EXIT_ON_CLOSE);
-		this.setLayout(new GridBagLayout());
+		
+		try {
+		    UIManager.setLookAndFeel(
+		        UIManager.getSystemLookAndFeelClassName());
+		} catch (UnsupportedLookAndFeelException ex) {
+		  System.out.println("Unable to load native look and feel");
+		} catch (ClassNotFoundException e) {
+		} catch (InstantiationException e) {
+		} catch (IllegalAccessException e) {
+		}
+		
+		
+		InputStream is = getClass().getResourceAsStream(RES_ICON_PATH);
+		byte[] buf = new byte[1024 * 100];
+		try {
+			int cnt = is.read(buf);
+			byte[] imgBuf = Arrays.copyOf(buf, cnt);
+			setIconImage(new ImageIcon(imgBuf).getImage());	
+		} catch (IOException e) {
+		}
+		
+//		this.setLayout(new GridBagLayout());
+
+		// Create the menu bar.
+		menuBar = new JMenuBar();
+		JMenu fileMenu = new JMenu("File");
+		JMenu actionMenu = new JMenu("Action");
+
+		menuBar.add(fileMenu);
+		menuBar.add(actionMenu);
+
+		loadItem = new JMenuItem(LOAD, KeyEvent.VK_L);
+		loadItem.addActionListener(this);
+		loadItem.setEnabled(true);
+		fileMenu.add(loadItem);
+
+		fileMenu.addSeparator();
+
+		donateItem = new JMenuItem(DONATE);
+		donateItem.addActionListener(this);
+		fileMenu.add(donateItem);
+
+		helpItem = new JMenuItem(HELP);
+		helpItem.addActionListener(this);
+		fileMenu.add(helpItem);
+
+		fileMenu.addSeparator();
+
+		JMenuItem menuItem = new JMenuItem(EXIT, KeyEvent.VK_E);
+		menuItem.addActionListener(this);
+		fileMenu.add(menuItem);
+
+		cropItem = new JMenuItem(CROP, KeyEvent.VK_C);
+		cropItem.addActionListener(this);
+		cropItem.setEnabled(false);
+		actionMenu.add(cropItem);
+
+		previewItem = new JMenuItem(PREVIEW, KeyEvent.VK_P);
+		previewItem.addActionListener(this);
+		previewItem.setEnabled(false);
+		actionMenu.add(previewItem);
+
+		maxWItem = new JMenuItem(MAXIMIZE_WIDTH, KeyEvent.VK_W);
+		maxWItem.addActionListener(this);
+		maxWItem.setEnabled(false);
+		actionMenu.add(maxWItem);
+
+		maxHItem = new JMenuItem(MAXIMIZE_HEIGHT, KeyEvent.VK_H);
+		maxHItem.addActionListener(this);
+		maxHItem.setEnabled(false);
+		actionMenu.add(maxHItem);
+
+		setJMenuBar(menuBar);
 
 		previewPanel = new JPanel();
-		previewPanel.setLayout(new GridBagLayout());
+		previewPanel.setLayout(new WrapLayout(FlowLayout.LEFT));
 		previewPanel.setEnabled(true);
 		previewPanel.setBackground(Color.BLACK);
 
-		loadBtn = new JButton(LOAD);
-		loadBtn.setEnabled(true);
-		loadBtn.setPreferredSize(new Dimension(300, 30));
-		loadBtn.addActionListener(this);
-
-		cropBtn = new JButton(CROP);
-		cropBtn.setPreferredSize(new Dimension(300, 30));
-		cropBtn.addActionListener(this);
-		cropBtn.setEnabled(false);
-
-		maxWBtn = new JButton(MAXIMIZE_WIDTH);
-		maxWBtn.setEnabled(false);
-		maxWBtn.setPreferredSize(new Dimension(300, 30));
-		maxWBtn.addActionListener(this);
-
-		maxHBtn = new JButton(MAXIMIZE_HEIGHT);
-		maxHBtn.setEnabled(false);
-		maxHBtn.setPreferredSize(new Dimension(300, 30));
-		maxHBtn.addActionListener(this);
-
 		progressBar = new JProgressBar(0, 100);
 		progressBar.setStringPainted(true);
-		progressBar.setPreferredSize(new Dimension(300, 30));
+		progressBar.setPreferredSize(new Dimension(400, 30));
 		progressBar.setEnabled(true);
 
-		GridBagConstraints c = new GridBagConstraints();
-		c.gridx = 0;
-		c.gridy = 0;
-		c.gridwidth = 2;
-		c.fill = GridBagConstraints.BOTH;
-		c.weightx = 1;
-		c.weighty = 1;
-		c.anchor = GridBagConstraints.CENTER;
 		JScrollPane scrollPane = new JScrollPane(previewPanel,
 				JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
 				JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 		scrollPane.getVerticalScrollBar().setUnitIncrement(30);
-		add(scrollPane, c);
-		c = new GridBagConstraints();
-		c.gridx = 0;
-		c.gridy = 1;
-		c.fill = GridBagConstraints.BOTH;
-		c.weightx = 0.5;
-		add(loadBtn, c);
-		c = new GridBagConstraints();
-		c.gridx = 1;
-		c.gridy = 1;
-		c.fill = GridBagConstraints.BOTH;
-		c.weightx = 0.5;
-		add(cropBtn, c);
-		c = new GridBagConstraints();
-		c.gridx = 0;
-		c.gridy = 2;
-		c.fill = GridBagConstraints.BOTH;
-		c.weightx = 0.5;
-		add(maxWBtn, c);
-		c = new GridBagConstraints();
-		c.gridx = 1;
-		c.gridy = 2;
-		c.fill = GridBagConstraints.BOTH;
-		c.weightx = 0.5;
-		add(maxHBtn, c);
-		c = new GridBagConstraints();
-		c.gridx = 0;
-		c.gridy = 3;
-		c.gridwidth = 2;
-		c.fill = GridBagConstraints.BOTH;
-		add(progressBar, c);
+		add(scrollPane, BorderLayout.CENTER);
+		add(progressBar, BorderLayout.PAGE_END);
 		pack();
 		setVisible(true);
-		this.setExtendedState(JFrame.MAXIMIZED_VERT);
+		cM = new ClusterManager();
 
 	}
 
@@ -226,9 +240,23 @@ public class Briss extends JFrame implements ActionListener,
 		new Briss();
 	}
 
-	@Override
 	public void actionPerformed(ActionEvent aE) {
-		if (aE.getActionCommand().equals(MAXIMIZE_HEIGHT)) {
+		if (aE.getActionCommand().equals(DONATE)) {
+			if (Desktop.isDesktopSupported()) {
+				Desktop desktop = Desktop.getDesktop();
+				URI donationURI;
+				try {
+					donationURI = new URI(DONATION_URI_STRING);
+					desktop.browse(donationURI);
+				} catch (URISyntaxException e) {
+				} catch (IOException e) {
+				}
+			}
+		} else if (aE.getActionCommand().equals(EXIT)) {
+			System.exit(0);
+		} else if (aE.getActionCommand().equals(HELP)) {
+			new JHelpDialog(this, "Briss Help", Dialog.ModalityType.MODELESS);
+		} else if (aE.getActionCommand().equals(MAXIMIZE_HEIGHT)) {
 			// maximize to height
 			// search for maximum height
 			int maxHeight = -1;
@@ -266,8 +294,8 @@ public class Briss extends JFrame implements ActionListener,
 			File loadFile = loadPDF(null, false);
 			if (loadFile != null) {
 				origFile = loadFile;
-				clustersMapping = null;
-				clusterToPageSet = null;
+
+				cM.reset();
 				previewPanel.removeAll();
 				progressBar.setString("loading PDF");
 				setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
@@ -293,20 +321,7 @@ public class Briss extends JFrame implements ActionListener,
 			}
 			progressBar.setString("loading PDF");
 			setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-			cropTask = new CropPDFTask();
-			cropTask.addPropertyChangeListener(this);
-			cropTask.execute();
-		}
-	}
-
-	private class CropPDFTask extends SwingWorker<Void, Void> {
-
-		public CropPDFTask() {
-			super();
-		}
-
-		@Override
-		protected void done() {
+			CropManager.crop(origFile, croppedFile, cM);
 			progressBar.setValue(0);
 			progressBar.setString("");
 			if (Desktop.isDesktopSupported()) {
@@ -317,190 +332,49 @@ public class Briss extends JFrame implements ActionListener,
 				}
 			}
 			setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
-		}
 
-		@SuppressWarnings("unchecked")
-		@Override
-		protected Void doInBackground() {
-
-			PdfReader reader;
+		} else if (aE.getActionCommand().equals(PREVIEW)) {
 			try {
-
-				// first make a copy containing the right amount of pages
-				reader = new PdfReader(origFile.getAbsolutePath());
-				Document document = new Document();
-				HashMap metaInfo = reader.getInfo();
-
-				File tmpFile = File.createTempFile("cropped", ".pdf");
-				PdfSmartCopy pdfCopy = new PdfSmartCopy(document,
-						new FileOutputStream(tmpFile));
-				document.open();
-				int origPageCount = reader.getNumberOfPages();
-				PdfImportedPage page;
-				List bookmarks = null;
-
-				for (int pageNumber = 1; pageNumber <= origPageCount; pageNumber++) {
-					PDFPageCluster clusterInfo = clustersMapping[pageNumber - 1];
-					page = pdfCopy.getImportedPage(reader, pageNumber);
-					bookmarks = SimpleBookmark.getBookmark(reader);
-					// SimpleBookmark.s
-					pdfCopy.addPage(page);
-					for (int j = 1; j < clusterInfo.getRatiosList().size(); j++) {
-						pdfCopy.addPage(page);
+				// create temp file and show
+				croppedFile = File.createTempFile("briss", ".pdf");
+				if (croppedFile == null)
+					return;
+				if (!croppedFile.exists()) {
+					try {
+						croppedFile.createNewFile();
+					} catch (IOException e) {
+						// TODO show dialog
 					}
 				}
-				document.close();
-				pdfCopy.close();
-
-				// now crop all pages according to their ratios
-
-				reader = new PdfReader(tmpFile.getAbsolutePath());
-
-				PdfStamper stamper = new PdfStamper(reader,
-						new FileOutputStream(croppedFile));
-				stamper.setMoreInfo(metaInfo);
-
-				PdfDictionary pageDict;
-				int newPageNumber = 1;
-				for (int origPageNumber = 1; origPageNumber <= origPageCount; origPageNumber++) {
-					PDFPageCluster clusterInfo = clustersMapping[origPageNumber - 1];
-
-					// if no crop was selected do nothing
-					if (clusterInfo.getRatiosList().size() == 0) {
-						newPageNumber++;
-						continue;
+				progressBar.setString("loading PDF");
+				setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+				CropManager.crop(origFile, croppedFile, cM);
+				progressBar.setValue(0);
+				progressBar.setString("");
+				if (Desktop.isDesktopSupported()) {
+					try {
+						Desktop.getDesktop().open(croppedFile);
+					} catch (IOException e) {
+						e.printStackTrace();
 					}
-
-					for (Float[] ratios : clusterInfo.getRatiosList()) {
-
-						pageDict = reader.getPageN(newPageNumber);
-
-						List<Rectangle> boxes = new ArrayList<Rectangle>();
-						boxes.add(reader.getBoxSize(newPageNumber, "media"));
-						boxes.add(reader.getBoxSize(newPageNumber, "crop"));
-						int rotation = reader.getPageRotation(newPageNumber);
-
-						Rectangle scaledBox = calculateScaledRectangle(boxes,
-								ratios, rotation);
-
-						PdfArray scaleBoxArray = new PdfArray();
-						scaleBoxArray.add(new PdfNumber(scaledBox.getLeft()));
-						scaleBoxArray.add(new PdfNumber(scaledBox.getBottom()));
-						scaleBoxArray.add(new PdfNumber(scaledBox.getRight()));
-						scaleBoxArray.add(new PdfNumber(scaledBox.getTop()));
-
-						pageDict.put(PdfName.CROPBOX, scaleBoxArray);
-						pageDict.put(PdfName.MEDIABOX, scaleBoxArray);
-						// increment the pagenumber
-						newPageNumber++;
-					}
-					int[] range = new int[2];
-					range[0] = newPageNumber - 1;
-					range[1] = origPageCount + (newPageNumber - origPageNumber);
-					SimpleBookmark.shiftPageNumbers(bookmarks, clusterInfo
-							.getRatiosList().size() - 1, range);
-
-					int percent = (int) ((origPageNumber / (float) origPageCount) * 100);
-					setProgress(percent);
 				}
-				stamper.setOutlines(bookmarks);
-				stamper.close();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (DocumentException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+			} catch (IOException e1) {
+				e1.printStackTrace();
 			}
-			return null;
+
 		}
 	}
 
-	private Rectangle calculateScaledRectangle(List<Rectangle> boxes,
-			Float[] ratios, int rotation) {
-		if (ratios == null || boxes.size() == 0) {
-			return null;
-		}
-		Rectangle sBox = null;
-		// find smallest box
-		float smallestSquare = Float.MAX_VALUE;
-		for (Rectangle box : boxes) {
-			if (box != null) {
-				if (sBox == null) {
-					sBox = box;
-				}
-				if (smallestSquare > box.getWidth() * box.getHeight()) {
-					// set new smallest box
-					smallestSquare = box.getWidth() * box.getHeight();
-					sBox = box;
-				}
-			}
-		}
-		if (sBox == null) {
-			return null; // no useable box was found
-		}
-
-		// rotate the ratios according to the rotation of the page
-		float[] rotRatios = rotateRatios(ratios, rotation);
-
-		// use smallest box as basis for calculation
-		Rectangle scaledBox = new Rectangle(sBox);
-
-		scaledBox.setLeft(sBox.getLeft() + (sBox.getWidth() * rotRatios[0]));
-		scaledBox.setBottom(sBox.getBottom()
-				+ (sBox.getHeight() * rotRatios[1]));
-		scaledBox.setRight(sBox.getLeft()
-				+ (sBox.getWidth() * (1 - rotRatios[2])));
-		scaledBox.setTop(sBox.getBottom()
-				+ (sBox.getHeight() * (1 - rotRatios[3])));
-
-		return scaledBox;
-	}
-
-	/**
-	 * Rotates the ratios counter clockwise until its at 0
-	 * 
-	 * @param ratios
-	 * @param rotation
-	 * @return
-	 */
-	private float[] rotateRatios(Float[] ratios, int rotation) {
-		float[] tmpRatios = new float[4];
-		for (int i = 0; i < 4; i++) {
-			tmpRatios[i] = ratios[i];
-		}
-		while (rotation > 0 && rotation < 360) {
-			float tmpValue = tmpRatios[0];
-			// left
-			tmpRatios[0] = tmpRatios[1];
-			// bottom
-			tmpRatios[1] = tmpRatios[2];
-			// right
-			tmpRatios[2] = tmpRatios[3];
-			// top
-			tmpRatios[3] = tmpValue;
-			rotation += 90;
-		}
-		return tmpRatios;
-	}
-
-	private class ClusterPagesTask extends SwingWorker<PDFPageCluster[], Void> {
-
-		private int pageCount;
-		private Set<Integer> excludePageSet;
+	private class ClusterPagesTask extends SwingWorker<Void, Void> {
 
 		public ClusterPagesTask() {
 			super();
+			progressBar.setString("Analysing PDF pages");
 			try {
-				PdfReader reader = new PdfReader(origFile.getAbsolutePath());
-				progressBar.setString("Analysing PDF pages");
-				pageCount = reader.getNumberOfPages();
-				excludePageSet = getExcludedPages();
-				clustersMapping = new PDFPageCluster[pageCount];
-				clusterToPageSet = new HashMap<PDFPageCluster, List<Integer>>();
-			} catch (IOException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
+				cM.init(origFile, getExcludedPages());
+			} catch (PdfException e) {
+			} catch (IOException e) {
 			}
 		}
 
@@ -511,9 +385,9 @@ public class Briss extends JFrame implements ActionListener,
 			while (!inputIsValid) {
 				String inputString = JOptionPane
 						.showInputDialog(
-								"Enter pages to be excluded from merging (e.g.: \"1-4;6;9\").\n" +
-								"First page has number: 1\n" +
-								"If you don't know what you should do just press \"Cancel\"",
+								"Enter pages to be excluded from merging (e.g.: \"1-4;6;9\").\n"
+										+ "First page has number: 1\n"
+										+ "If you don't know what you should do just press \"Cancel\"",
 								rememberInputString);
 				rememberInputString = inputString;
 
@@ -532,144 +406,53 @@ public class Briss extends JFrame implements ActionListener,
 			return null;
 		}
 
-		private <T extends Comparable<? super T>> List<T> asSortedList(
-				Collection<T> c) {
-			List<T> list = new ArrayList<T>(c);
-			java.util.Collections.sort(list);
-			return list;
-		}
-
 		@Override
 		protected void done() {
 			setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
-			int yposition = 0;
-			GridBagConstraints c = new GridBagConstraints();
-			c.gridx = 0;
-			c.gridy = yposition++;
-			c.anchor = GridBagConstraints.CENTER;
-			c.insets = new Insets(2, 0, 2, 0);
-			JTextArea text = new JTextArea(
-					" Draw multiple crop rectangles for merged pages by clicking+holding the left mouse button down."
-							+ " The number reflects the ordering of the new pages. "
-							+ "Clear the rectangles for a page-cluster by pressing the right mouse button.");
-			text.setLineWrap(true);
-			text.setForeground(Color.YELLOW);
-			text.setBackground(Color.BLACK);
-			previewPanel.add(text, c);
-
 			mergedPanels = new ArrayList<MergedPanel>();
 
-			List<PDFPageCluster> tmpClusterList = asSortedList(clusterToPageSet
-					.keySet());
+			List<PDFPageCluster> tmpClusterList = cM.getClusterAsList();
 
 			for (PDFPageCluster cluster : tmpClusterList) {
 				MergedPanel p = new MergedPanel(cluster);
-				c = new GridBagConstraints();
-				c.gridx = 0;
-				c.gridy = yposition++;
-				c.anchor = GridBagConstraints.CENTER;
-				c.insets = new Insets(4, 0, 4, 0);
-				previewPanel.add(p, c);
+				previewPanel.add(p);
 				mergedPanels.add(p);
 			}
 			progressBar
 					.setString("PDF loaded - Select crop size and press crop");
-			cropBtn.setEnabled(true);
-			maxWBtn.setEnabled(true);
-			maxHBtn.setEnabled(true);
+			cropItem.setEnabled(true);
+			maxWItem.setEnabled(true);
+			maxHItem.setEnabled(true);
+			previewItem.setEnabled(true);
 			setProgress(0);
 			pack();
+			setExtendedState(JFrame.MAXIMIZED_BOTH);
 		}
 
 		@Override
-		protected PDFPageCluster[] doInBackground() throws Exception {
+		protected Void doInBackground() {
 
-			PdfReader reader = new PdfReader(origFile.getAbsolutePath());
+			cM.clusterPages();
+			int totWorkUnits = cM.getTotWorkUnits();
 
-			for (int i = 1; i <= pageCount; i++) {
-				Rectangle layoutBox = reader.getBoxSize(i, "crop");
+			ClusterManager.WorkerThread wT = cM.new WorkerThread();
+			wT.start();
 
-				if (layoutBox == null) {
-					layoutBox = reader.getBoxSize(i, "media");
-				}
+			progressBar.setString("PDF analysed - creating merged previews");
 
-				// create Cluster
-				// if the pagenumber should be excluded then use it as a
-				// discriminating parameter, else use default value
-				
-				int pageNumber = -1;
-				if (excludePageSet != null && excludePageSet.contains(i)) {
-					pageNumber = i;
-				}
-
-				PDFPageCluster tmpCluster = new PDFPageCluster(i % 2 == 0,
-						(int) layoutBox.getWidth(),
-						(int) layoutBox.getHeight(), pageNumber);
-
-				if (clusterToPageSet.containsKey(tmpCluster)) {
-					// cluster exists
-					List<Integer> pageNumbers = clusterToPageSet
-							.get(tmpCluster);
-					pageNumbers.add(i);
-				} else {
-					// new Cluster
-					List<Integer> pageNumbers = new ArrayList<Integer>();
-					pageNumbers.add(i);
-					clusterToPageSet.put(tmpCluster, pageNumbers);
-				}
-				setProgress(0);
-				int percent = (int) ((i / (float) pageCount) * 100);
+			while (wT.isAlive()) {
+				int percent = (int) ((wT.workerUnitCounter / (float) totWorkUnits) * 100);
 				setProgress(percent);
-			}
-			for (PDFPageCluster key : clusterToPageSet.keySet()) {
-				for (Integer pageNumber : clusterToPageSet.get(key)) {
-					clustersMapping[pageNumber - 1] = key;
-				}
-			}
-
-			// now render the pages and create the preview images
-			// for every cluster create a set of pages on which the preview will
-			// be based
-			for (PDFPageCluster cluster : clusterToPageSet.keySet()) {
-				cluster.choosePagesToMerge(clusterToPageSet.get(cluster));
-			}
-
-			int clusterCounter = 1;
-			// create a PdfDecoder using Jpedal library
-			PdfDecoder decode_pdf = new PdfDecoder(true);
-			decode_pdf.openPdfFile(origFile.getAbsolutePath());
-
-			for (PDFPageCluster cluster : clusterToPageSet.keySet()) {
-				progressBar.setString("PDF analysed - creating cluster:"
-						+ clusterCounter++);
-				setProgress(0);
-
-				int pageCounter = 0;
 				try {
-					for (Integer pageNumber : cluster.getPagesToMerge()) {
-						// TODO jpedal isn't able to render big images
-						// correctly, so let's check if the image is big an
-						// throw it away
-						if (cluster.isFunctional()) {
-							BufferedImage renderedPage = decode_pdf
-									.getPageAsImage(pageNumber);
-							cluster.addImageToPreview(renderedPage);
-						}
-						int percent = (int) ((++pageCounter / (float) cluster
-								.getPagesToMerge().size()) * 100);
-
-						setProgress(percent);
-					}
-				} catch (Exception e) {
-					System.out.println(e);
+					Thread.sleep(500);
+				} catch (InterruptedException e) {
 				}
-
 			}
-			return clustersMapping;
+
+			return null;
 		}
 	}
 
-	@Override
 	public void propertyChange(PropertyChangeEvent evt) {
 		if ("progress".equals(evt.getPropertyName())) {
 			progressBar.setValue((Integer) evt.getNewValue());
