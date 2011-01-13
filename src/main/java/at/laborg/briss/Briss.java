@@ -58,6 +58,11 @@ import javax.swing.filechooser.FileFilter;
 
 import org.jpedal.exception.PdfException;
 
+import at.laborg.briss.gui.JHelpDialog;
+import at.laborg.briss.gui.MergedPanel;
+import at.laborg.briss.gui.WrapLayout;
+import at.laborg.briss.utils.PageNumberParser;
+
 /**
  * 
  * @author gerhard
@@ -161,8 +166,6 @@ public class Briss extends JFrame implements ActionListener,
 		} catch (IOException e) {
 		}
 		
-//		this.setLayout(new GridBagLayout());
-
 		// Create the menu bar.
 		menuBar = new JMenuBar();
 		JMenu fileMenu = new JMenu("File");

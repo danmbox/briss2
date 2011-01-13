@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License along with
  * BRISS. If not, see http://www.gnu.org/licenses/.
  */
-package at.laborg.briss;
+package at.laborg.briss.gui;
 
 import java.awt.AlphaComposite;
 import java.awt.BasicStroke;
@@ -36,6 +36,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.swing.JPanel;
+
+import at.laborg.briss.PDFPageCluster;
 
 @SuppressWarnings("serial")
 public class MergedPanel extends JPanel implements MouseMotionListener,

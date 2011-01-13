@@ -1,4 +1,4 @@
-package at.laborg.briss;
+package at.laborg.briss.utils;
 
 import java.text.ParseException;
 import java.util.HashSet;

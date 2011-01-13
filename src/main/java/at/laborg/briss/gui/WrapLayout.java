@@ -1,4 +1,4 @@
-package at.laborg.briss;
+package at.laborg.briss.gui;
 
 import java.awt.*;
 import javax.swing.JScrollPane;
