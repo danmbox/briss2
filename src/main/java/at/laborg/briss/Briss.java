@@ -25,6 +25,7 @@ import java.awt.Desktop;
 import java.awt.Dialog;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.Frame;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
@@ -51,6 +52,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
+import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingWorker;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
@@ -84,18 +86,19 @@ public class Briss extends JFrame implements ActionListener,
 	private static final String DONATION_URI_STRING = "http://sourceforge.net/project/project_donations.php?group_id=320676";
 	private static final String RES_ICON_PATH = "/Briss_icon_032x032.gif";
 
-	private ClusterManager cM;
-
 	private JMenuBar menuBar;
 	private JPanel previewPanel;
 	private JProgressBar progressBar;
 	private JMenuItem loadItem, cropItem, maxWItem, maxHItem, previewItem,
 			helpItem, donateItem;
-	private ClusterPagesTask clusterTask;
+	private List<MergedPanel> mergedPanels = null;
+
 	private File lastOpenDir;
 	private File origFile = null;
 	private File croppedFile = null;
-	private List<MergedPanel> mergedPanels = null;
+
+	private ClusterPagesTask clusterTask;
+	private ClusterJobData currentClusterJobData;
 
 	public Briss() {
 		super("BRISS - BRigt Snippet Sire");
@@ -114,9 +117,8 @@ public class Briss extends JFrame implements ActionListener,
 		fc.setFileFilter(new FileFilter() {
 			@Override
 			public boolean accept(File pathname) {
-				if (pathname.isDirectory()) {
+				if (pathname.isDirectory())
 					return true;
-				}
 				return pathname.toString().toLowerCase().endsWith(".pdf");
 			}
 
@@ -134,8 +136,9 @@ public class Briss extends JFrame implements ActionListener,
 		}
 
 		if (retval == JFileChooser.APPROVE_OPTION) {
-			if (fc.getSelectedFile() != null)
+			if (fc.getSelectedFile() != null) {
 				lastOpenDir = fc.getSelectedFile().getParentFile();
+			}
 			return fc.getSelectedFile();
 		}
 
@@ -145,27 +148,25 @@ public class Briss extends JFrame implements ActionListener,
 	private void init() {
 
 		setDefaultCloseOperation(EXIT_ON_CLOSE);
-		
+
 		try {
-		    UIManager.setLookAndFeel(
-		        UIManager.getSystemLookAndFeelClassName());
+			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
 		} catch (UnsupportedLookAndFeelException ex) {
-		  System.out.println("Unable to load native look and feel");
+			System.out.println("Unable to load native look and feel");
 		} catch (ClassNotFoundException e) {
 		} catch (InstantiationException e) {
 		} catch (IllegalAccessException e) {
 		}
-		
-		
+
 		InputStream is = getClass().getResourceAsStream(RES_ICON_PATH);
 		byte[] buf = new byte[1024 * 100];
 		try {
 			int cnt = is.read(buf);
 			byte[] imgBuf = Arrays.copyOf(buf, cnt);
-			setIconImage(new ImageIcon(imgBuf).getImage());	
+			setIconImage(new ImageIcon(imgBuf).getImage());
 		} catch (IOException e) {
 		}
-		
+
 		// Create the menu bar.
 		menuBar = new JMenuBar();
 		JMenu fileMenu = new JMenu("File");
@@ -228,15 +229,13 @@ public class Briss extends JFrame implements ActionListener,
 		progressBar.setEnabled(true);
 
 		JScrollPane scrollPane = new JScrollPane(previewPanel,
-				JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
-				JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+				ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS,
+				ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 		scrollPane.getVerticalScrollBar().setUnitIncrement(30);
 		add(scrollPane, BorderLayout.CENTER);
 		add(progressBar, BorderLayout.PAGE_END);
 		pack();
 		setVisible(true);
-		cM = new ClusterManager();
-
 	}
 
 	public static void main(String args[]) {
@@ -296,13 +295,22 @@ public class Briss extends JFrame implements ActionListener,
 		} else if (aE.getActionCommand().equals(LOAD)) {
 			File loadFile = loadPDF(null, false);
 			if (loadFile != null) {
+				setTitle("BRISS - " + loadFile.getName());
 				origFile = loadFile;
-
-				cM.reset();
+				try {
+					currentClusterJobData = ClusterManager.createClusterJob(
+							origFile, getExcludedPages());
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (PdfException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 				previewPanel.removeAll();
 				progressBar.setString("loading PDF");
 				setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-				clusterTask = new ClusterPagesTask();
+				clusterTask = new ClusterPagesTask(currentClusterJobData);
 				clusterTask.addPropertyChangeListener(this);
 				clusterTask.execute();
 			}
@@ -324,7 +332,7 @@ public class Briss extends JFrame implements ActionListener,
 			}
 			progressBar.setString("loading PDF");
 			setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-			CropManager.crop(origFile, croppedFile, cM);
+			CropManager.crop(origFile, croppedFile, currentClusterJobData);
 			progressBar.setValue(0);
 			progressBar.setString("");
 			if (Desktop.isDesktopSupported()) {
@@ -351,7 +359,7 @@ public class Briss extends JFrame implements ActionListener,
 				}
 				progressBar.setString("loading PDF");
 				setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-				CropManager.crop(origFile, croppedFile, cM);
+				CropManager.crop(origFile, croppedFile, currentClusterJobData);
 				progressBar.setValue(0);
 				progressBar.setString("");
 				if (Desktop.isDesktopSupported()) {
@@ -369,44 +377,47 @@ public class Briss extends JFrame implements ActionListener,
 		}
 	}
 
+	private Set<Integer> getExcludedPages() {
+		boolean inputIsValid = false;
+		String rememberInputString = "";
+		// show dialog
+		while (!inputIsValid) {
+			String inputString = JOptionPane
+					.showInputDialog(
+							"Enter pages to be excluded from merging (e.g.: \"1-4;6;9\").\n"
+									+ "First page has number: 1\n"
+									+ "If you don't know what you should do just press \"Cancel\"",
+							rememberInputString);
+			rememberInputString = inputString;
+
+			if (inputString == null || inputString.equals(""))
+				return null;
+
+			try {
+				return PageNumberParser.parsePageNumber(inputString);
+			} catch (ParseException e) {
+				JOptionPane.showMessageDialog(null, e.getMessage(),
+						"Input Error", JOptionPane.ERROR_MESSAGE);
+			}
+
+		}
+		return null;
+	}
+
+	public void propertyChange(PropertyChangeEvent evt) {
+		if ("progress".equals(evt.getPropertyName())) {
+			progressBar.setValue((Integer) evt.getNewValue());
+		}
+	}
+
 	private class ClusterPagesTask extends SwingWorker<Void, Void> {
 
-		public ClusterPagesTask() {
+		private final ClusterJobData pdfCluster;
+
+		public ClusterPagesTask(ClusterJobData pdfCluster) {
 			super();
+			this.pdfCluster = pdfCluster;
 			progressBar.setString("Analysing PDF pages");
-			try {
-				cM.init(origFile, getExcludedPages());
-			} catch (PdfException e) {
-			} catch (IOException e) {
-			}
-		}
-
-		private Set<Integer> getExcludedPages() {
-			boolean inputIsValid = false;
-			String rememberInputString = "";
-			// show dialog
-			while (!inputIsValid) {
-				String inputString = JOptionPane
-						.showInputDialog(
-								"Enter pages to be excluded from merging (e.g.: \"1-4;6;9\").\n"
-										+ "First page has number: 1\n"
-										+ "If you don't know what you should do just press \"Cancel\"",
-								rememberInputString);
-				rememberInputString = inputString;
-
-				if (inputString == null || inputString.equals("")) {
-					return null;
-				}
-
-				try {
-					return PageNumberParser.parsePageNumber(inputString);
-				} catch (ParseException e) {
-					JOptionPane.showMessageDialog(null, e.getMessage(),
-							"Input Error", JOptionPane.ERROR_MESSAGE);
-				}
-
-			}
-			return null;
 		}
 
 		@Override
@@ -414,9 +425,9 @@ public class Briss extends JFrame implements ActionListener,
 			setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
 			mergedPanels = new ArrayList<MergedPanel>();
 
-			List<PDFPageCluster> tmpClusterList = cM.getClusterAsList();
+			List<PageCluster> tmpClusterList = pdfCluster.getClusterAsList();
 
-			for (PDFPageCluster cluster : tmpClusterList) {
+			for (PageCluster cluster : tmpClusterList) {
 				MergedPanel p = new MergedPanel(cluster);
 				previewPanel.add(p);
 				mergedPanels.add(p);
@@ -429,16 +440,23 @@ public class Briss extends JFrame implements ActionListener,
 			previewItem.setEnabled(true);
 			setProgress(0);
 			pack();
-			setExtendedState(JFrame.MAXIMIZED_BOTH);
+			setExtendedState(Frame.MAXIMIZED_BOTH);
 		}
 
 		@Override
 		protected Void doInBackground() {
 
-			cM.clusterPages();
-			int totWorkUnits = cM.getTotWorkUnits();
+			try {
+				ClusterManager.clusterPages(pdfCluster);
 
-			ClusterManager.WorkerThread wT = cM.new WorkerThread();
+			} catch (IOException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+			int totWorkUnits = pdfCluster.getTotWorkUnits();
+
+			ClusterManager.WorkerThread wT = new ClusterManager.WorkerThread(
+					pdfCluster);
 			wT.start();
 
 			progressBar.setString("PDF analysed - creating merged previews");
@@ -456,9 +474,4 @@ public class Briss extends JFrame implements ActionListener,
 		}
 	}
 
-	public void propertyChange(PropertyChangeEvent evt) {
-		if ("progress".equals(evt.getPropertyName())) {
-			progressBar.setValue((Integer) evt.getNewValue());
-		}
-	}
 }

@@ -37,7 +37,7 @@ import java.util.List;
 
 import javax.swing.JPanel;
 
-import at.laborg.briss.PDFPageCluster;
+import at.laborg.briss.PageCluster;
 
 @SuppressWarnings("serial")
 public class MergedPanel extends JPanel implements MouseMotionListener,
@@ -57,10 +57,10 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 			AlphaComposite.SRC_OVER, .8f);
 
 	private final List<CropRect> crops = new ArrayList<CropRect>();
-	private final PDFPageCluster cluster;
-	private BufferedImage img;
+	private final PageCluster cluster;
+	private final BufferedImage img;
 
-	public MergedPanel(PDFPageCluster cluster) {
+	public MergedPanel(PageCluster cluster) {
 		super();
 		this.cluster = cluster;
 		this.img = cluster.getPreviewImage();
@@ -72,7 +72,7 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 		setToolTipText(createInfoString(cluster));
 	}
 
-	private String createInfoString(PDFPageCluster cluster) {
+	private String createInfoString(PageCluster cluster) {
 		StringBuilder sb = new StringBuilder();
 		sb.append("<html>");
 		sb.append(cluster.isEvenPage() ? "Even " : "Odd ").append("page<br>");
@@ -168,8 +168,9 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 			// img.getWidth(),
 			// img.getHeight()));
 		} else {
-			if (lastDragPoint == null)
+			if (lastDragPoint == null) {
 				lastDragPoint = curPoint;
+			}
 			// drag the rectangle around
 			crops.get(dragCropIndex).translate(curPoint.x - lastDragPoint.x,
 					curPoint.y - lastDragPoint.y);
@@ -355,7 +356,7 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 			Font pFont) {
 
 		Font font = pFont;
-		float fontSize = (float) font.getSize();
+		float fontSize = font.getSize();
 		font = g.getFont().deriveFont(fontSize);
 		int width = g.getFontMetrics(font).stringWidth(text);
 		int height = g.getFontMetrics(font).getHeight();

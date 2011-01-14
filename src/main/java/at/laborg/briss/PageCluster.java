@@ -27,27 +27,28 @@ import java.awt.image.WritableRaster;
 import java.util.ArrayList;
 import java.util.List;
 
-public class PDFPageCluster implements Comparable<PDFPageCluster> {
+public class PageCluster implements Comparable<PageCluster> {
 
 	private final static int MERGE_VARIABILITY = 20;
 	private final static int MAX_MERGE_PAGES = 20;
 	private final static int MAX_PAGE_HEIGHT = 900;
 	private final static int MAX_IMAGE_RENDER_SIZE = 2000 * 2000;
+
 	private List<Integer> pagesToMerge;
 	private List<Integer> allPages;
+	private final List<Float[]> cropRatiosList = new ArrayList<Float[]>();
+
 	private BufferedImage previewImage;
 	private WritableRaster raster = null;
 	private double[][] imageData = null;
-	private List<Float[]> cropRatiosList = new ArrayList<Float[]>();
 
 	private int excludedPageNumber = -1;
+	private final boolean renderable;
+	private final boolean evenPage;
+	private final int pageWidth;
+	private final int pageHeight;
 
-	private boolean renderable;
-	private boolean evenPage;
-	private int pageWidth;
-	private int pageHeight;
-
-	public PDFPageCluster(boolean isEvenPage, int pageWidth, int pageHeight,
+	public PageCluster(boolean isEvenPage, int pageWidth, int pageHeight,
 			int excludedPageNumber) {
 		super();
 		this.pageWidth = pageWidth;
@@ -127,9 +128,8 @@ public class PDFPageCluster implements Comparable<PDFPageCluster> {
 	}
 
 	public BufferedImage getPreviewImage() {
-		if (!renderable) {
+		if (!renderable)
 			return getUnrenderableImage();
-		}
 		for (int k = 0; k < previewImage.getHeight(); ++k) {
 			for (int j = 0; j < previewImage.getWidth(); ++j) {
 				raster.setSample(j, k, 0, Math.round(imageData[j][k]
@@ -176,7 +176,7 @@ public class PDFPageCluster implements Comparable<PDFPageCluster> {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		PDFPageCluster other = (PDFPageCluster) obj;
+		PageCluster other = (PageCluster) obj;
 		if (evenPage != other.evenPage)
 			return false;
 		if (excludedPageNumber != other.excludedPageNumber)
@@ -231,7 +231,7 @@ public class PDFPageCluster implements Comparable<PDFPageCluster> {
 		return renderable;
 	}
 
-	public int compareTo(PDFPageCluster that) {
+	public int compareTo(PageCluster that) {
 
 		return this.getFirstPage() - that.getFirstPage();
 	}

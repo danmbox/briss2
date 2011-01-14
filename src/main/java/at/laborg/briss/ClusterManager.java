@@ -4,8 +4,6 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 
@@ -16,87 +14,54 @@ import com.itextpdf.text.Rectangle;
 import com.itextpdf.text.pdf.PdfReader;
 
 public class ClusterManager {
-	private HashMap<Integer, PDFPageCluster> pagesToClustersMapping;
-	private HashMap<PDFPageCluster, List<Integer>> clustersToPagesMapping;
 
-	private boolean dirty = true;
+	public static ClusterJobData createClusterJob(File origFile,
+			Set<Integer> excludedPages) throws IOException, PdfException {
 
-	private int pageCount;
-	private Set<Integer> excludedPageSet;
-	private PdfReader reader;
-	private PdfDecoder pdfDecoder;
-
-	public void reset() {
-		pagesToClustersMapping = null;
-		clustersToPagesMapping = null;
-		dirty = true;
+		PdfReader reader = new PdfReader(origFile.getAbsolutePath());
+		ClusterJobData pdfCluster = new ClusterJobData(reader
+				.getNumberOfPages(), origFile.getAbsolutePath(), excludedPages);
+		reader.close();
+		return pdfCluster;
 	}
 
-	public PDFPageCluster getCluster(int pageNumber) {
-		if (dirty) {
-			for (PDFPageCluster cluster : clustersToPagesMapping.keySet()) {
-				for (Integer page : clustersToPagesMapping.get(cluster)) {
-					pagesToClustersMapping.put(page - 1, cluster);
+	public static PageCluster getPageCluster(int pageNumber,
+			ClusterJobData pdfCluster) {
+		if (pdfCluster.isDirty()) {
+			for (PageCluster cluster : pdfCluster.getClustersToPages().keySet()) {
+				for (Integer page : pdfCluster.getClustersToPages()
+						.get(cluster)) {
+					pdfCluster.getPagesToClusters().put(page - 1, cluster);
 				}
 			}
-			dirty = false;
+			pdfCluster.setDirty(false);
 		}
-		return pagesToClustersMapping.get(pageNumber - 1);
+		return pdfCluster.getPagesToClusters().get(pageNumber - 1);
 	}
 
-	public void init(int pageCount) {
-		pagesToClustersMapping = new HashMap<Integer, PDFPageCluster>();
-		clustersToPagesMapping = new HashMap<PDFPageCluster, List<Integer>>();
-		dirty = true;
-	}
-
-	public void init(File pdfFile, Set<Integer> excludedPages)
-			throws IOException, PdfException {
-		reader = new PdfReader(pdfFile.getAbsolutePath());
-		excludedPageSet = excludedPages;
-		pageCount = reader.getNumberOfPages();
-		pagesToClustersMapping = new HashMap<Integer, PDFPageCluster>();
-		clustersToPagesMapping = new HashMap<PDFPageCluster, List<Integer>>();
-		dirty = true;
-		pdfDecoder = new PdfDecoder(true);
-		pdfDecoder.openPdfFile(pdfFile.getAbsolutePath());
-
-	}
-
-	private <T extends Comparable<? super T>> List<T> asSortedList(
-			Collection<T> c) {
-		List<T> list = new ArrayList<T>(c);
-		java.util.Collections.sort(list);
-		return list;
-	}
-
-	public List<PDFPageCluster> getClusterAsList() {
-		return asSortedList(clustersToPagesMapping.keySet());
-	}
-
-	public void addPage(PDFPageCluster tmpCluster, int pageNumber) {
-		if (clustersToPagesMapping.containsKey(tmpCluster)) {
+	public static void addPageToCluster(PageCluster tmpCluster, int pageNumber,
+			ClusterJobData pdfCluster) {
+		if (pdfCluster.getClustersToPages().containsKey(tmpCluster)) {
 			// cluster exists
-			List<Integer> pageNumbers = clustersToPagesMapping.get(tmpCluster);
+			List<Integer> pageNumbers = pdfCluster.getClustersToPages().get(
+					tmpCluster);
 			pageNumbers.add(pageNumber);
 
 		} else {
 			// new Cluster
 			List<Integer> pageNumbers = new ArrayList<Integer>();
 			pageNumbers.add(pageNumber);
-			clustersToPagesMapping.put(tmpCluster, pageNumbers);
+			pdfCluster.getClustersToPages().put(tmpCluster, pageNumbers);
 		}
 		// whenever a page was added the pagesToClustersMapping isn't useful
 		// anymore. This musst be handled when reading the pages
-		dirty = true;
+		pdfCluster.setDirty(true);
 	}
 
-	public Set<PDFPageCluster> getClusters() {
-		return clustersToPagesMapping.keySet();
-	}
-
-	public void clusterPages() {
-		for (int i = 1; i <= pageCount; i++) {
+	public static void clusterPages(ClusterJobData pdfCluster)
+			throws IOException {
+		PdfReader reader = new PdfReader(pdfCluster.getFullFilePath());
+		for (int i = 1; i <= pdfCluster.getPageCount(); i++) {
 			Rectangle layoutBox = reader.getBoxSize(i, "crop");
 
 			if (layoutBox == null) {
@@ -108,39 +73,46 @@ public class ClusterManager {
 			// discriminating parameter, else use default value
 
 			int pageNumber = -1;
-			if (excludedPageSet != null && excludedPageSet.contains(i)) {
+			if (pdfCluster.getExcludedPageSet() != null
+					&& pdfCluster.getExcludedPageSet().contains(i)) {
 				pageNumber = i;
 			}
 
-			PDFPageCluster tmpCluster = new PDFPageCluster(i % 2 == 0,
+			PageCluster tmpCluster = new PageCluster(i % 2 == 0,
 					(int) layoutBox.getWidth(), (int) layoutBox.getHeight(),
 					pageNumber);
 
-			addPage(tmpCluster, i);
+			addPageToCluster(tmpCluster, i, pdfCluster);
 		}
 		// now render the pages and create the preview images
 		// for every cluster create a set of pages on which the preview will
 		// be based
-		for (PDFPageCluster cluster : clustersToPagesMapping.keySet()) {
-			cluster.choosePagesToMerge(clustersToPagesMapping.get(cluster));
+		for (PageCluster cluster : pdfCluster.getClustersToPages().keySet()) {
+			cluster.choosePagesToMerge(pdfCluster.getClustersToPages().get(
+					cluster));
 		}
+		reader.close();
 	}
 
-	public int getTotWorkUnits() {
-		int size = 0;
-		for (PDFPageCluster cluster : clustersToPagesMapping.keySet()) {
-			size += cluster.getPagesToMerge().size();
-		}
-		return size;
-	}
-
-	public class WorkerThread extends Thread {
+	public static class WorkerThread extends Thread {
 
 		public int workerUnitCounter = 1;
+		private final ClusterJobData pdfCluster;
+
+		public WorkerThread(ClusterJobData pdfCluster) {
+			this.pdfCluster = pdfCluster;
+		}
 
 		@Override
 		public void run() {
-			for (PDFPageCluster cluster : getClusters()) {
+			PdfDecoder pdfDecoder = new PdfDecoder(true);
+			try {
+				pdfDecoder.openPdfFile(pdfCluster.getFullFilePath());
+			} catch (PdfException e1) {
+				e1.printStackTrace();
+			}
+
+			for (PageCluster cluster : pdfCluster.getClusters()) {
 				for (Integer pageNumber : cluster.getPagesToMerge()) {
 					// TODO jpedal isn't able to render big images
 					// correctly, so let's check if the image is big an
@@ -158,8 +130,9 @@ public class ClusterManager {
 					}
 				}
 			}
+			// now close the reader as it's not used anymore
+			pdfDecoder.closePdfFile();
 		}
 
 	}
-
 }

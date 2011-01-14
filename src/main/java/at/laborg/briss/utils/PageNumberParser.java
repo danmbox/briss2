@@ -23,10 +23,9 @@ public class PageNumberParser {
 		Pattern p = Pattern.compile("[^0-9-;]");
 		Matcher m = p.matcher(input);
 
-		if (m.find()) {
+		if (m.find())
 			throw new ParseException(
 					"Allowed characters: \"0-9\" \";\" \"-\" ", 0);
-		}
 
 		// now tokenize by ;
 		StringTokenizer tokenizer = new StringTokenizer(input, ";");
@@ -52,18 +51,17 @@ public class PageNumberParser {
 		} else if (tokenizer.countTokens() == 2) {
 			int start = Integer.parseInt(tokenizer.nextToken());
 			int end = Integer.parseInt(tokenizer.nextToken());
-			if (start > end) {
+			if (start > end)
 				throw new ParseException("End must be bigger than start in \""
 						+ input + "\"", 0);
-			} else {
+			else {
 				for (int i = start; i <= end; i++) {
 					returnSet.add(i);
 				}
 				return returnSet;
 			}
-		} else {
+		} else
 			throw new ParseException("\"" + input
 					+ "\" has to many - characters!", 0);
-		}
 	}
 }

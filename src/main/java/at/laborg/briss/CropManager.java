@@ -22,7 +22,8 @@ import com.itextpdf.text.pdf.SimpleBookmark;
 
 public class CropManager {
 
-	public static void crop(File origFile, File croppedFile, ClusterManager cM) {
+	public static void crop(File origFile, File croppedFile,
+			ClusterJobData pdfCluster) {
 		PdfReader reader;
 		try {
 
@@ -40,7 +41,8 @@ public class CropManager {
 			List<HashMap<String, Object>> bookmarks = null;
 
 			for (int pageNumber = 1; pageNumber <= origPageCount; pageNumber++) {
-				PDFPageCluster currentCluster = cM.getCluster(pageNumber);
+				PageCluster currentCluster = ClusterManager.getPageCluster(
+						pageNumber, pdfCluster);
 				page = pdfCopy.getImportedPage(reader, pageNumber);
 				bookmarks = SimpleBookmark.getBookmark(reader);
 				pdfCopy.addPage(page);
@@ -62,7 +64,8 @@ public class CropManager {
 			PdfDictionary pageDict;
 			int newPageNumber = 1;
 			for (int origPageNumber = 1; origPageNumber <= origPageCount; origPageNumber++) {
-				PDFPageCluster currentCluster = cM.getCluster(origPageNumber);
+				PageCluster currentCluster = ClusterManager.getPageCluster(
+						origPageNumber, pdfCluster);
 
 				// if no crop was selected do nothing
 				if (currentCluster.getRatiosList().size() == 0) {
@@ -113,9 +116,8 @@ public class CropManager {
 
 	private static Rectangle calculateScaledRectangle(List<Rectangle> boxes,
 			Float[] ratios, int rotation) {
-		if (ratios == null || boxes.size() == 0) {
+		if (ratios == null || boxes.size() == 0)
 			return null;
-		}
 		Rectangle sBox = null;
 		// find smallest box
 		float smallestSquare = Float.MAX_VALUE;
@@ -131,9 +133,8 @@ public class CropManager {
 				}
 			}
 		}
-		if (sBox == null) {
+		if (sBox == null)
 			return null; // no useable box was found
-		}
 
 		// rotate the ratios according to the rotation of the page
 		float[] rotRatios = rotateRatios(ratios, rotation);
