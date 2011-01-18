@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public class ClusterJobData {
@@ -11,18 +12,27 @@ public class ClusterJobData {
 	private final HashMap<Integer, PageCluster> pagesToClusters;
 	private final HashMap<PageCluster, List<Integer>> clustersToPages;
 	private final int pageCount;
-	private final Set<Integer> excludedPageSet;
+	private Set<Integer> excludedPageSet;
 	private final String fullFilePath;
+	private Map<Integer, List<Float[]>> preFilledCropRectangles;
 	private boolean dirty;
 
-	public ClusterJobData(int pageCount, String fullFilePath,
-			Set<Integer> excludedPages) {
+	public ClusterJobData(int pageCount, String fullFilePath) {
 		this.dirty = true;
 		this.pageCount = pageCount;
 		this.pagesToClusters = new HashMap<Integer, PageCluster>();
 		this.clustersToPages = new HashMap<PageCluster, List<Integer>>();
 		this.fullFilePath = fullFilePath;
-		this.excludedPageSet = excludedPages;
+	}
+
+	public ClusterJobData(int pageCount, String fullFilePath,
+			Map<Integer, List<Float[]>> preFilledCropRectangles) {
+		this(pageCount, fullFilePath);
+		this.preFilledCropRectangles = preFilledCropRectangles;
+	}
+
+	public Map<Integer, List<Float[]>> getPreFilledCropRectangles() {
+		return preFilledCropRectangles;
 	}
 
 	public HashMap<Integer, PageCluster> getPagesToClusters() {
@@ -39,6 +49,10 @@ public class ClusterJobData {
 
 	public Set<Integer> getExcludedPageSet() {
 		return excludedPageSet;
+	}
+
+	public void setExcludedPageSet(Set<Integer> excludedPageSet) {
+		this.excludedPageSet = excludedPageSet;
 	}
 
 	public boolean isDirty() {

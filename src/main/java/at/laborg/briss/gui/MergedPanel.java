@@ -69,7 +69,19 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 			addMouseMotionListener(this);
 			addMouseListener(this);
 		}
+		addRatiosAsCrops(cluster.getRatiosList());
 		setToolTipText(createInfoString(cluster));
+	}
+
+	private void addRatiosAsCrops(List<Float[]> ratiosList) {
+		for (Float[] ratios: cluster.getRatiosList()) {
+			CropRect rect = new CropRect();
+			rect.x = (int) (img.getWidth() * ratios[0]);
+			rect.y = (int) (img.getHeight() * ratios[3]);
+			rect.width = (int) (img.getWidth() * (1 - (ratios[0] + ratios[2])));
+			rect.height = (int) (img.getHeight() * (1 - (ratios[1] + ratios[3])));
+			crops.add(rect);
+		}
 	}
 
 	private String createInfoString(PageCluster cluster) {
@@ -307,7 +319,7 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 					.getHeight()));
 		}
 	}
-
+	
 	/**
 	 * creates the crop ratios from the user selection. 0 = left 1 = bottom 2 =
 	 * right 3 = top

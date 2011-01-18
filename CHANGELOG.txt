@@ -20,6 +20,11 @@
 CHANGELOG  - BRISS  
 ################################################
 
+* 0.0.13 (To be released) 
+ * Added possibility to reload pdfs for using other excluded pages while
+ 	retaining crop rectangles
+ * Included Import/Export capability for comming batch mode
+
 * 0.0.12 (release 11.01.2010)
  * Added Icon (thx to joão ziliotto)
  * Reworked the GUI

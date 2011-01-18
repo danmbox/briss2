@@ -27,6 +27,9 @@ public class CropManager {
 		PdfReader reader;
 		try {
 
+			// TODO try exporting
+			System.out.println(ExportImport.export(pdfCluster));
+
 			// first make a copy containing the right amount of pages
 			reader = new PdfReader(origFile.getAbsolutePath());
 			Document document = new Document();
@@ -54,7 +57,6 @@ public class CropManager {
 			pdfCopy.close();
 
 			// now crop all pages according to their ratios
-
 			reader = new PdfReader(tmpFile.getAbsolutePath());
 
 			PdfStamper stamper = new PdfStamper(reader, new FileOutputStream(

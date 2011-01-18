@@ -4,8 +4,9 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 
 import org.jpedal.PdfDecoder;
 import org.jpedal.exception.PdfException;
@@ -15,12 +16,24 @@ import com.itextpdf.text.pdf.PdfReader;
 
 public class ClusterManager {
 
-	public static ClusterJobData createClusterJob(File origFile,
-			Set<Integer> excludedPages) throws IOException, PdfException {
+	public static ClusterJobData createClusterJob(File origFile)
+			throws IOException, PdfException {
 
 		PdfReader reader = new PdfReader(origFile.getAbsolutePath());
 		ClusterJobData pdfCluster = new ClusterJobData(reader
-				.getNumberOfPages(), origFile.getAbsolutePath(), excludedPages);
+				.getNumberOfPages(), origFile.getAbsolutePath());
+		reader.close();
+		return pdfCluster;
+	}
+
+	public static ClusterJobData createClusterJob(File origFile,
+			Map<Integer, List<Float[]>> preFilledCropRectangles)
+			throws IOException, PdfException {
+
+		PdfReader reader = new PdfReader(origFile.getAbsolutePath());
+		ClusterJobData pdfCluster = new ClusterJobData(reader
+				.getNumberOfPages(), origFile.getAbsolutePath(),
+				preFilledCropRectangles);
 		reader.close();
 		return pdfCluster;
 	}
@@ -122,6 +135,13 @@ public class ClusterManager {
 							BufferedImage renderedPage = pdfDecoder
 									.getPageAsImage(pageNumber);
 							cluster.addImageToPreview(renderedPage);
+							if (pdfCluster.getPreFilledCropRectangles() != null) {
+								for (Float[] ratios : pdfCluster
+										.getPreFilledCropRectangles().get(
+												pageNumber)) {
+									cluster.addRatios(ratios);
+								}
+							}
 							workerUnitCounter++;
 						}
 					} catch (PdfException e) {
@@ -129,10 +149,40 @@ public class ClusterManager {
 						e.printStackTrace();
 					}
 				}
+
 			}
 			// now close the reader as it's not used anymore
 			pdfDecoder.closePdfFile();
+			// fillClusterWithRects(tmpClusterList,
+			// pdfCluster.getPreFillCropRectangle);
 		}
-
 	}
+
+	public static Map<Integer, List<Float[]>> getCropRectangles(
+			ClusterJobData clusterJobData) {
+		Map<Integer, List<Float[]>> res = new HashMap<Integer, List<Float[]>>();
+		for (int page = 1; page <= clusterJobData.getPageCount(); page++) {
+			res.put(page, getPageCluster(page, clusterJobData).getRatiosList());
+		}
+		return res;
+	}
+
+	// /**
+	// * Fill the cluster list with previous generated crop rectangles
+	// *
+	// * @param tmpClusterList
+	// * @param preFillCropRectangle
+	// */
+	// public static void fillClusterWithRects(List<PageCluster> clusterList,
+	// Map<Integer, List<Float[]>> preFillCropRectangle) {
+	// if (preFillCropRectangle == null)
+	// return;
+	// for (PageCluster cluster: clusterList) {
+	// for (Integer page: cluster.getAllPages()) {
+	// for (Float[] ratios: preFillCropRectangle.get(page)) {
+	// cluster.addRatios(ratios);
+	// }
+	// }
+	// }
+	// }
 }

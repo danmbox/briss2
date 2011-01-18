@@ -40,6 +40,7 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import javax.swing.ImageIcon;
@@ -79,6 +80,7 @@ public class Briss extends JFrame implements ActionListener,
 	private static final String EXIT = "Exit";
 	private static final String MAXIMIZE_WIDTH = "Maximize to width";
 	private static final String MAXIMIZE_HEIGHT = "Maximize to height";
+	private static final String RELOAD = "Reload PDF";
 	private static final String PREVIEW = "Preview";
 	private static final String DONATE = "Donate";
 	private static final String HELP = "Show help";
@@ -90,19 +92,22 @@ public class Briss extends JFrame implements ActionListener,
 	private JPanel previewPanel;
 	private JProgressBar progressBar;
 	private JMenuItem loadItem, cropItem, maxWItem, maxHItem, previewItem,
-			helpItem, donateItem;
+			helpItem, donateItem, reloadItem;
 	private List<MergedPanel> mergedPanels = null;
 
 	private File lastOpenDir;
 	private File origFile = null;
 	private File croppedFile = null;
 
-	private ClusterPagesTask clusterTask;
 	private ClusterJobData currentClusterJobData;
 
 	public Briss() {
 		super("BRISS - BRigt Snippet Sire");
 		init();
+	}
+
+	public static void main(String args[]) {
+		new Briss();
 	}
 
 	private File loadPDF(String recommendation, boolean saveDialog) {
@@ -186,6 +191,11 @@ public class Briss extends JFrame implements ActionListener,
 		donateItem.addActionListener(this);
 		fileMenu.add(donateItem);
 
+		reloadItem = new JMenuItem(RELOAD);
+		reloadItem.addActionListener(this);
+		reloadItem.setEnabled(false);
+		fileMenu.add(reloadItem);
+
 		helpItem = new JMenuItem(HELP);
 		helpItem.addActionListener(this);
 		fileMenu.add(helpItem);
@@ -238,8 +248,31 @@ public class Briss extends JFrame implements ActionListener,
 		setVisible(true);
 	}
 
-	public static void main(String args[]) {
-		new Briss();
+	private static Set<Integer> getExcludedPages() {
+		boolean inputIsValid = false;
+		String rememberInputString = "";
+		// show dialog
+		while (!inputIsValid) {
+			String inputString = JOptionPane
+					.showInputDialog(
+							"Enter pages to be excluded from merging (e.g.: \"1-4;6;9\").\n"
+									+ "First page has number: 1\n"
+									+ "If you don't know what you should do just press \"Cancel\"",
+							rememberInputString);
+			rememberInputString = inputString;
+
+			if (inputString == null || inputString.equals(""))
+				return null;
+
+			try {
+				return PageNumberParser.parsePageNumber(inputString);
+			} catch (ParseException e) {
+				JOptionPane.showMessageDialog(null, e.getMessage(),
+						"Input Error", JOptionPane.ERROR_MESSAGE);
+			}
+
+		}
+		return null;
 	}
 
 	public void actionPerformed(ActionEvent aE) {
@@ -291,15 +324,21 @@ public class Briss extends JFrame implements ActionListener,
 			for (MergedPanel mp : mergedPanels) {
 				mp.setSelCropWidth(maxWidth);
 			}
+		} else if (aE.getActionCommand().equals(RELOAD)) {
+			// reloadPDF with new excluded Pages
+			// save the original crop rectangles
+			Map<Integer, List<Float[]>> backupCropRectangle = ClusterManager
+					.getCropRectangles(currentClusterJobData);
 
-		} else if (aE.getActionCommand().equals(LOAD)) {
-			File loadFile = loadPDF(null, false);
-			if (loadFile != null) {
-				setTitle("BRISS - " + loadFile.getName());
-				origFile = loadFile;
+			// distribute the original crop rectangles
+			if (origFile != null) {
+				setTitle("BRISS - " + origFile.getName());
 				try {
 					currentClusterJobData = ClusterManager.createClusterJob(
-							origFile, getExcludedPages());
+							origFile, backupCropRectangle);
+					currentClusterJobData
+							.setExcludedPageSet(getExcludedPages());
+
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -310,7 +349,33 @@ public class Briss extends JFrame implements ActionListener,
 				previewPanel.removeAll();
 				progressBar.setString("loading PDF");
 				setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-				clusterTask = new ClusterPagesTask(currentClusterJobData);
+				ClusterPagesTask clusterTask = new ClusterPagesTask(
+						currentClusterJobData);
+				clusterTask.addPropertyChangeListener(this);
+				clusterTask.execute();
+			}
+		} else if (aE.getActionCommand().equals(LOAD)) {
+			File loadFile = loadPDF(null, false);
+			if (loadFile != null) {
+				setTitle("BRISS - " + loadFile.getName());
+				origFile = loadFile;
+				try {
+					currentClusterJobData = ClusterManager
+							.createClusterJob(origFile);
+					currentClusterJobData
+							.setExcludedPageSet(getExcludedPages());
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (PdfException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				previewPanel.removeAll();
+				progressBar.setString("loading PDF");
+				setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+				ClusterPagesTask clusterTask = new ClusterPagesTask(
+						currentClusterJobData);
 				clusterTask.addPropertyChangeListener(this);
 				clusterTask.execute();
 			}
@@ -377,33 +442,6 @@ public class Briss extends JFrame implements ActionListener,
 		}
 	}
 
-	private Set<Integer> getExcludedPages() {
-		boolean inputIsValid = false;
-		String rememberInputString = "";
-		// show dialog
-		while (!inputIsValid) {
-			String inputString = JOptionPane
-					.showInputDialog(
-							"Enter pages to be excluded from merging (e.g.: \"1-4;6;9\").\n"
-									+ "First page has number: 1\n"
-									+ "If you don't know what you should do just press \"Cancel\"",
-							rememberInputString);
-			rememberInputString = inputString;
-
-			if (inputString == null || inputString.equals(""))
-				return null;
-
-			try {
-				return PageNumberParser.parsePageNumber(inputString);
-			} catch (ParseException e) {
-				JOptionPane.showMessageDialog(null, e.getMessage(),
-						"Input Error", JOptionPane.ERROR_MESSAGE);
-			}
-
-		}
-		return null;
-	}
-
 	public void propertyChange(PropertyChangeEvent evt) {
 		if ("progress".equals(evt.getPropertyName())) {
 			progressBar.setValue((Integer) evt.getNewValue());
@@ -437,6 +475,7 @@ public class Briss extends JFrame implements ActionListener,
 			cropItem.setEnabled(true);
 			maxWItem.setEnabled(true);
 			maxHItem.setEnabled(true);
+			reloadItem.setEnabled(true);
 			previewItem.setEnabled(true);
 			setProgress(0);
 			pack();
@@ -453,8 +492,8 @@ public class Briss extends JFrame implements ActionListener,
 				// TODO Auto-generated catch block
 				e1.printStackTrace();
 			}
-			int totWorkUnits = pdfCluster.getTotWorkUnits();
 
+			int totWorkUnits = pdfCluster.getTotWorkUnits();
 			ClusterManager.WorkerThread wT = new ClusterManager.WorkerThread(
 					pdfCluster);
 			wT.start();
