@@ -1,10 +1,10 @@
 package at.laborg.briss;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 public class ClusterJobData {
@@ -12,27 +12,17 @@ public class ClusterJobData {
 	private final HashMap<Integer, PageCluster> pagesToClusters;
 	private final HashMap<PageCluster, List<Integer>> clustersToPages;
 	private final int pageCount;
+
 	private Set<Integer> excludedPageSet;
-	private final String fullFilePath;
-	private Map<Integer, List<Float[]>> preFilledCropRectangles;
+	private final File inFile;
 	private boolean dirty;
 
-	public ClusterJobData(int pageCount, String fullFilePath) {
+	public ClusterJobData(int pageCount, File inFile) {
 		this.dirty = true;
 		this.pageCount = pageCount;
 		this.pagesToClusters = new HashMap<Integer, PageCluster>();
 		this.clustersToPages = new HashMap<PageCluster, List<Integer>>();
-		this.fullFilePath = fullFilePath;
-	}
-
-	public ClusterJobData(int pageCount, String fullFilePath,
-			Map<Integer, List<Float[]>> preFilledCropRectangles) {
-		this(pageCount, fullFilePath);
-		this.preFilledCropRectangles = preFilledCropRectangles;
-	}
-
-	public Map<Integer, List<Float[]>> getPreFilledCropRectangles() {
-		return preFilledCropRectangles;
+		this.inFile = inFile;
 	}
 
 	public HashMap<Integer, PageCluster> getPagesToClusters() {
@@ -63,8 +53,8 @@ public class ClusterJobData {
 		this.dirty = dirty;
 	}
 
-	public String getFullFilePath() {
-		return fullFilePath;
+	public File getFile() {
+		return inFile;
 	}
 
 	private <T extends Comparable<? super T>> List<T> asSortedList(

@@ -36,6 +36,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
 
 import at.laborg.briss.PageCluster;
 
@@ -74,7 +75,7 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 	}
 
 	private void addRatiosAsCrops(List<Float[]> ratiosList) {
-		for (Float[] ratios: cluster.getRatiosList()) {
+		for (Float[] ratios : cluster.getRatiosList()) {
 			CropRect rect = new CropRect();
 			rect.x = (int) (img.getWidth() * ratios[0]);
 			rect.y = (int) (img.getHeight() * ratios[3]);
@@ -175,10 +176,6 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 			curCrop.y = (curPoint.y < cropStartPoint.y) ? curPoint.y
 					: cropStartPoint.y;
 			curCrop.height = Math.abs(curPoint.y - cropStartPoint.y);
-			// // cut it to the image border
-			// curCrop = curCrop.intersection(new Rectangle(0, 0,
-			// img.getWidth(),
-			// img.getHeight()));
 		} else {
 			if (lastDragPoint == null) {
 				lastDragPoint = curPoint;
@@ -187,8 +184,6 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 			crops.get(dragCropIndex).translate(curPoint.x - lastDragPoint.x,
 					curPoint.y - lastDragPoint.y);
 			lastDragPoint = curPoint;
-			// crops.set(dragCropIndex, crops.get(dragCropIndex).intersection(
-			// new Rectangle(0, 0, img.getWidth(), img.getHeight())));
 		}
 
 		repaint();
@@ -219,7 +214,7 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 			repaint();
 			return;
 		}
-		if (mE.getButton() == MouseEvent.BUTTON1) {
+		if (SwingUtilities.isLeftMouseButton(mE)) {
 			// check if the click was made in a crop rectangle
 			for (Rectangle crop : crops) {
 				if (crop.contains(p)) {
@@ -319,7 +314,7 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 					.getHeight()));
 		}
 	}
-	
+
 	/**
 	 * creates the crop ratios from the user selection. 0 = left 1 = bottom 2 =
 	 * right 3 = top

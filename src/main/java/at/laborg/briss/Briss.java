@@ -40,7 +40,6 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import javax.swing.ImageIcon;
@@ -80,7 +79,7 @@ public class Briss extends JFrame implements ActionListener,
 	private static final String EXIT = "Exit";
 	private static final String MAXIMIZE_WIDTH = "Maximize to width";
 	private static final String MAXIMIZE_HEIGHT = "Maximize to height";
-	private static final String RELOAD = "Reload PDF";
+	private static final String EXCLUDE_OTHER_PAGES = "Exclude other pages";
 	private static final String PREVIEW = "Preview";
 	private static final String DONATE = "Donate";
 	private static final String HELP = "Show help";
@@ -92,17 +91,15 @@ public class Briss extends JFrame implements ActionListener,
 	private JPanel previewPanel;
 	private JProgressBar progressBar;
 	private JMenuItem loadItem, cropItem, maxWItem, maxHItem, previewItem,
-			helpItem, donateItem, reloadItem;
+			helpItem, donateItem, excludeOtherItem;
 	private List<MergedPanel> mergedPanels = null;
 
 	private File lastOpenDir;
-	private File origFile = null;
-	private File croppedFile = null;
 
 	private ClusterJobData currentClusterJobData;
 
 	public Briss() {
-		super("BRISS - BRigt Snippet Sire");
+		super("BRISS - BRight Snippet Sire");
 		init();
 	}
 
@@ -191,10 +188,10 @@ public class Briss extends JFrame implements ActionListener,
 		donateItem.addActionListener(this);
 		fileMenu.add(donateItem);
 
-		reloadItem = new JMenuItem(RELOAD);
-		reloadItem.addActionListener(this);
-		reloadItem.setEnabled(false);
-		fileMenu.add(reloadItem);
+		excludeOtherItem = new JMenuItem(EXCLUDE_OTHER_PAGES);
+		excludeOtherItem.addActionListener(this);
+		excludeOtherItem.setEnabled(false);
+		fileMenu.add(excludeOtherItem);
 
 		helpItem = new JMenuItem(HELP);
 		helpItem.addActionListener(this);
@@ -324,21 +321,22 @@ public class Briss extends JFrame implements ActionListener,
 			for (MergedPanel mp : mergedPanels) {
 				mp.setSelCropWidth(maxWidth);
 			}
-		} else if (aE.getActionCommand().equals(RELOAD)) {
+		} else if (aE.getActionCommand().equals(EXCLUDE_OTHER_PAGES)) {
 			// reloadPDF with new excluded Pages
-			// save the original crop rectangles
-			Map<Integer, List<Float[]>> backupCropRectangle = ClusterManager
-					.getCropRectangles(currentClusterJobData);
 
-			// distribute the original crop rectangles
-			if (origFile != null) {
-				setTitle("BRISS - " + origFile.getName());
+			if (currentClusterJobData.getFile() != null) {
+				setTitle("BRISS - " + currentClusterJobData.getFile().getName());
 				try {
-					currentClusterJobData = ClusterManager.createClusterJob(
-							origFile, backupCropRectangle);
-					currentClusterJobData
-							.setExcludedPageSet(getExcludedPages());
-
+					ClusterJobData newClusterJobData = ClusterManager
+							.createClusterJob(currentClusterJobData.getFile());
+					newClusterJobData.setExcludedPageSet(getExcludedPages());
+					previewPanel.removeAll();
+					progressBar.setString("loading PDF");
+					setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+					ClusterPagesTask clusterTask = new ClusterPagesTask(
+							newClusterJobData);
+					clusterTask.addPropertyChangeListener(this);
+					clusterTask.execute();
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -346,22 +344,15 @@ public class Briss extends JFrame implements ActionListener,
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
-				previewPanel.removeAll();
-				progressBar.setString("loading PDF");
-				setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-				ClusterPagesTask clusterTask = new ClusterPagesTask(
-						currentClusterJobData);
-				clusterTask.addPropertyChangeListener(this);
-				clusterTask.execute();
+
 			}
 		} else if (aE.getActionCommand().equals(LOAD)) {
 			File loadFile = loadPDF(null, false);
 			if (loadFile != null) {
 				setTitle("BRISS - " + loadFile.getName());
-				origFile = loadFile;
 				try {
 					currentClusterJobData = ClusterManager
-							.createClusterJob(origFile);
+							.createClusterJob(loadFile);
 					currentClusterJobData
 							.setExcludedPageSet(getExcludedPages());
 				} catch (IOException e) {
@@ -381,11 +372,11 @@ public class Briss extends JFrame implements ActionListener,
 			}
 		} else if (aE.getActionCommand().equals(CROP)) {
 			// create file recommendation
-			String origName = origFile.getAbsolutePath();
+			String origName = currentClusterJobData.getFile().getAbsolutePath();
 			String recommendedName = origName.substring(0,
 					origName.length() - 4)
 					+ "_cropped.pdf";
-			croppedFile = loadPDF(recommendedName, true);
+			File croppedFile = loadPDF(recommendedName, true);
 			if (croppedFile == null)
 				return;
 			if (!croppedFile.exists()) {
@@ -397,7 +388,8 @@ public class Briss extends JFrame implements ActionListener,
 			}
 			progressBar.setString("loading PDF");
 			setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-			CropManager.crop(origFile, croppedFile, currentClusterJobData);
+			CropManager.crop(currentClusterJobData.getFile(), croppedFile,
+					currentClusterJobData);
 			progressBar.setValue(0);
 			progressBar.setString("");
 			if (Desktop.isDesktopSupported()) {
@@ -412,7 +404,7 @@ public class Briss extends JFrame implements ActionListener,
 		} else if (aE.getActionCommand().equals(PREVIEW)) {
 			try {
 				// create temp file and show
-				croppedFile = File.createTempFile("briss", ".pdf");
+				File croppedFile = File.createTempFile("briss", ".pdf");
 				if (croppedFile == null)
 					return;
 				if (!croppedFile.exists()) {
@@ -424,7 +416,8 @@ public class Briss extends JFrame implements ActionListener,
 				}
 				progressBar.setString("loading PDF");
 				setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-				CropManager.crop(origFile, croppedFile, currentClusterJobData);
+				CropManager.crop(currentClusterJobData.getFile(), croppedFile,
+						currentClusterJobData);
 				progressBar.setValue(0);
 				progressBar.setString("");
 				if (Desktop.isDesktopSupported()) {
@@ -448,54 +441,77 @@ public class Briss extends JFrame implements ActionListener,
 		}
 	}
 
+	private void clusteringFinished(ClusterJobData newClusterJobData) {
+
+		// remove old stuff
+		previewPanel.removeAll();
+
+		// create merged panels
+		mergedPanels = new ArrayList<MergedPanel>();
+
+		List<PageCluster> tmpClusterList = newClusterJobData.getClusterAsList();
+
+		for (PageCluster cluster : tmpClusterList) {
+			// check if the previous cluster was just reloaded
+			if (currentClusterJobData != null
+					&& currentClusterJobData.getFile().equals(
+							newClusterJobData.getFile())) {
+
+				for (Integer pageNumber : cluster.getAllPages()) {
+					PageCluster p = ClusterManager.getPageCluster(pageNumber,
+							currentClusterJobData);
+					for (Float[] ratios : p.getRatiosList()) {
+						cluster.addRatios(ratios);
+					}
+				}
+			}
+			MergedPanel p = new MergedPanel(cluster);
+			previewPanel.add(p);
+			mergedPanels.add(p);
+		}
+		progressBar.setString("Clustering and Rendering finished");
+		cropItem.setEnabled(true);
+		maxWItem.setEnabled(true);
+		maxHItem.setEnabled(true);
+		excludeOtherItem.setEnabled(true);
+		previewItem.setEnabled(true);
+
+		pack();
+		setExtendedState(Frame.MAXIMIZED_BOTH);
+		currentClusterJobData = newClusterJobData;
+	}
+
 	private class ClusterPagesTask extends SwingWorker<Void, Void> {
 
-		private final ClusterJobData pdfCluster;
+		private final ClusterJobData clusterJobData;
 
 		public ClusterPagesTask(ClusterJobData pdfCluster) {
 			super();
-			this.pdfCluster = pdfCluster;
+			this.clusterJobData = pdfCluster;
 			progressBar.setString("Analysing PDF pages");
 		}
 
 		@Override
 		protected void done() {
 			setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
-			mergedPanels = new ArrayList<MergedPanel>();
-
-			List<PageCluster> tmpClusterList = pdfCluster.getClusterAsList();
-
-			for (PageCluster cluster : tmpClusterList) {
-				MergedPanel p = new MergedPanel(cluster);
-				previewPanel.add(p);
-				mergedPanels.add(p);
-			}
-			progressBar
-					.setString("PDF loaded - Select crop size and press crop");
-			cropItem.setEnabled(true);
-			maxWItem.setEnabled(true);
-			maxHItem.setEnabled(true);
-			reloadItem.setEnabled(true);
-			previewItem.setEnabled(true);
 			setProgress(0);
-			pack();
-			setExtendedState(Frame.MAXIMIZED_BOTH);
+			clusteringFinished(clusterJobData);
 		}
 
 		@Override
 		protected Void doInBackground() {
 
 			try {
-				ClusterManager.clusterPages(pdfCluster);
+				ClusterManager.clusterPages(clusterJobData);
 
 			} catch (IOException e1) {
 				// TODO Auto-generated catch block
 				e1.printStackTrace();
 			}
 
-			int totWorkUnits = pdfCluster.getTotWorkUnits();
-			ClusterManager.WorkerThread wT = new ClusterManager.WorkerThread(
-					pdfCluster);
+			int totWorkUnits = clusterJobData.getTotWorkUnits();
+			ClusterManager.ClusterRenderWorker wT = new ClusterManager.ClusterRenderWorker(
+					clusterJobData);
 			wT.start();
 
 			progressBar.setString("PDF analysed - creating merged previews");

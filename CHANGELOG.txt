@@ -24,6 +24,7 @@ CHANGELOG  - BRISS
  * Added possibility to reload pdfs for using other excluded pages while
  	retaining crop rectangles
  * Included Import/Export capability for comming batch mode
+ * Hopefully fixed bug where on Mac the crop rectangles couldn't be deleted
 
 * 0.0.12 (release 11.01.2010)
  * Added Icon (thx to joão ziliotto)
