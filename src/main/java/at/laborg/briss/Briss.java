@@ -75,6 +75,7 @@ public class Briss extends JFrame implements ActionListener,
 		PropertyChangeListener {
 
 	private static final String LOAD = "Load File";
+	private static final String LOAD_MULTIPLE = "Load Multiple Files";
 	private static final String CROP = "Crop PDF";
 	private static final String EXIT = "Exit";
 	private static final String MAXIMIZE_WIDTH = "Maximize to width";
@@ -90,8 +91,8 @@ public class Briss extends JFrame implements ActionListener,
 	private JMenuBar menuBar;
 	private JPanel previewPanel;
 	private JProgressBar progressBar;
-	private JMenuItem loadItem, cropItem, maxWItem, maxHItem, previewItem,
-			helpItem, donateItem, excludeOtherItem;
+	private JMenuItem loadItem, loadMultipleItem, cropItem, maxWItem, maxHItem,
+			previewItem, helpItem, donateItem, excludeOtherItem;
 	private List<MergedPanel> mergedPanels = null;
 
 	private File lastOpenDir;
@@ -104,7 +105,12 @@ public class Briss extends JFrame implements ActionListener,
 	}
 
 	public static void main(String args[]) {
-		new Briss();
+		// check if args are present, if so try to start commandline briss
+		if (args.length > 0) {
+			BrissCMD.autoCrop(args);
+		} else {
+			new Briss();
+		}
 	}
 
 	private File loadPDF(String recommendation, boolean saveDialog) {
@@ -181,6 +187,11 @@ public class Briss extends JFrame implements ActionListener,
 		loadItem.addActionListener(this);
 		loadItem.setEnabled(true);
 		fileMenu.add(loadItem);
+
+		loadMultipleItem = new JMenuItem(LOAD_MULTIPLE, KeyEvent.VK_M);
+		loadMultipleItem.addActionListener(this);
+		loadMultipleItem.setEnabled(true);
+		fileMenu.add(loadMultipleItem);
 
 		fileMenu.addSeparator();
 
@@ -346,6 +357,14 @@ public class Briss extends JFrame implements ActionListener,
 				}
 
 			}
+		} else if (aE.getActionCommand().equals(LOAD_MULTIPLE)) {
+			// Tough one:
+			// let user select multiple files
+			// store files (into clusterjobdata?)
+			// cluster the first one
+			// in croptask: crop all with the same rectangles
+			// difficult because what if pages of n1 < pages of n2 ???
+
 		} else if (aE.getActionCommand().equals(LOAD)) {
 			File loadFile = loadPDF(null, false);
 			if (loadFile != null) {
