@@ -28,7 +28,7 @@ public class CropManager {
 		try {
 
 			// TODO try exporting
-			System.out.println(ExportImport.export(pdfCluster));
+			// System.out.println(ExportImport.export(pdfCluster));
 
 			// first make a copy containing the right amount of pages
 			reader = new PdfReader(origFile.getAbsolutePath());
