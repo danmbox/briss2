@@ -38,7 +38,7 @@ import java.util.List;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 
-import at.laborg.briss.PageCluster;
+import at.laborg.briss.model.SingleCluster;
 
 @SuppressWarnings("serial")
 public class MergedPanel extends JPanel implements MouseMotionListener,
@@ -58,10 +58,10 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 			AlphaComposite.SRC_OVER, .8f);
 
 	private final List<CropRect> crops = new ArrayList<CropRect>();
-	private final PageCluster cluster;
+	private final SingleCluster cluster;
 	private final BufferedImage img;
 
-	public MergedPanel(PageCluster cluster) {
+	public MergedPanel(SingleCluster cluster) {
 		super();
 		this.cluster = cluster;
 		this.img = cluster.getPreviewImage();
@@ -85,7 +85,7 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 		}
 	}
 
-	private String createInfoString(PageCluster cluster) {
+	private String createInfoString(SingleCluster cluster) {
 		StringBuilder sb = new StringBuilder();
 		sb.append("<html>");
 		sb.append(cluster.isEvenPage() ? "Even " : "Odd ").append("page<br>");
@@ -190,7 +190,6 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 	}
 
 	public void mouseMoved(MouseEvent arg0) {
-
 	}
 
 	public void mouseClicked(MouseEvent mE) {
@@ -239,7 +238,7 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 		}
 	}
 
-	public int getWidestRect() {
+	public int getWidestSelectedRect() {
 		int max = -1;
 		for (CropRect crop : crops) {
 			if (crop.isSelected()) {
@@ -251,7 +250,7 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 		return max;
 	}
 
-	public int getHeighestRect() {
+	public int getHeighestSelectedRect() {
 		int max = -1;
 		for (CropRect crop : crops) {
 			if (crop.isSelected()) {

@@ -1,17 +1,20 @@
-package at.laborg.briss;
+package at.laborg.briss.utils;
 
 import java.io.File;
 import java.util.List;
 import java.util.Set;
 
-public class ExportImport {
+import at.laborg.briss.model.ClusterJob;
+import at.laborg.briss.model.SingleCluster;
 
-	public static String export(ClusterJobData clusterJobData) {
+public class ExportImportHelper {
+
+	public static String export(ClusterJob clusterJob) {
 
 		StringBuffer result = new StringBuffer();
-		result.append(exportExcludePages(clusterJobData.getExcludedPageSet())
+		result.append(exportExcludePages(clusterJob.getExcludedPageSet())
 				+ "\n");
-		for (PageCluster cluster : clusterJobData.getClusterAsList()) {
+		for (SingleCluster cluster : clusterJob.getClusters().getAsList()) {
 			result.append(exportRatios(cluster.getRatiosList()) + "\n");
 		}
 		return result.toString();
@@ -37,7 +40,7 @@ public class ExportImport {
 		return null;
 	}
 
-	public static ClusterJobData importClusterJobData(File pdf, File inFileText) {
+	public static ClusterJob importClusterJobData(File pdf, File inFileText) {
 		// create clusterjob
 		// add excluded Pages
 		// run merging

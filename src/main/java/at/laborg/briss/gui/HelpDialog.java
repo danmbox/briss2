@@ -10,11 +10,11 @@ import javax.swing.JEditorPane;
 import javax.swing.JScrollPane;
 
 @SuppressWarnings("serial")
-public class JHelpDialog extends JDialog {
+public class HelpDialog extends JDialog {
 
 	private static final String HELP_FILE_PATH = "/help.html";
 
-	public JHelpDialog(Frame owner, String title,
+	public HelpDialog(Frame owner, String title,
 			Dialog.ModalityType modalityType) {
 		super(owner, title, modalityType);
 		setBounds(232, 232, 500, 800);

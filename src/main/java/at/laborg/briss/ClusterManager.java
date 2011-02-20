@@ -3,7 +3,6 @@ package at.laborg.briss;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -11,58 +10,28 @@ import java.util.Map;
 import org.jpedal.PdfDecoder;
 import org.jpedal.exception.PdfException;
 
+import at.laborg.briss.model.ClusterJob;
+import at.laborg.briss.model.ClusterSet;
+import at.laborg.briss.model.SingleCluster;
+
 import com.itextpdf.text.Rectangle;
 import com.itextpdf.text.pdf.PdfReader;
 
 public class ClusterManager {
 
-	public static ClusterJobData createClusterJob(File origFile)
+	public static ClusterJob createClusterJob(File origFile)
 			throws IOException, PdfException {
 
 		PdfReader reader = new PdfReader(origFile.getAbsolutePath());
-		ClusterJobData pdfCluster = new ClusterJobData(reader
-				.getNumberOfPages(), origFile);
+		ClusterJob clusterJob = new ClusterJob(reader.getNumberOfPages(),
+				origFile);
 		reader.close();
-		return pdfCluster;
+		return clusterJob;
 	}
 
-	public static PageCluster getPageCluster(int pageNumber,
-			ClusterJobData pdfCluster) {
-		if (pdfCluster.isDirty()) {
-			for (PageCluster cluster : pdfCluster.getClustersToPages().keySet()) {
-				for (Integer page : pdfCluster.getClustersToPages()
-						.get(cluster)) {
-					pdfCluster.getPagesToClusters().put(page - 1, cluster);
-				}
-			}
-			pdfCluster.setDirty(false);
-		}
-		return pdfCluster.getPagesToClusters().get(pageNumber - 1);
-	}
-
-	public static void addPageToCluster(PageCluster tmpCluster, int pageNumber,
-			ClusterJobData pdfCluster) {
-		if (pdfCluster.getClustersToPages().containsKey(tmpCluster)) {
-			// cluster exists
-			List<Integer> pageNumbers = pdfCluster.getClustersToPages().get(
-					tmpCluster);
-			pageNumbers.add(pageNumber);
-
-		} else {
-			// new Cluster
-			List<Integer> pageNumbers = new ArrayList<Integer>();
-			pageNumbers.add(pageNumber);
-			pdfCluster.getClustersToPages().put(tmpCluster, pageNumbers);
-		}
-		// whenever a page was added the pagesToClustersMapping isn't useful
-		// anymore. This musst be handled when reading the pages
-		pdfCluster.setDirty(true);
-	}
-
-	public static void clusterPages(ClusterJobData pdfCluster)
-			throws IOException {
-		PdfReader reader = new PdfReader(pdfCluster.getFile().getAbsolutePath());
-		for (int i = 1; i <= pdfCluster.getPageCount(); i++) {
+	public static void clusterPages(ClusterJob clusterJob) throws IOException {
+		PdfReader reader = new PdfReader(clusterJob.getSource().getAbsolutePath());
+		for (int i = 1; i <= clusterJob.getClusters().getPageCount(); i++) {
 			Rectangle layoutBox = reader.getBoxSize(i, "crop");
 
 			if (layoutBox == null) {
@@ -74,23 +43,24 @@ public class ClusterManager {
 			// discriminating parameter, else use default value
 
 			int pageNumber = -1;
-			if (pdfCluster.getExcludedPageSet() != null
-					&& pdfCluster.getExcludedPageSet().contains(i)) {
+			if (clusterJob.getExcludedPageSet() != null
+					&& clusterJob.getExcludedPageSet().contains(i)) {
 				pageNumber = i;
 			}
 
-			PageCluster tmpCluster = new PageCluster(i % 2 == 0,
+			SingleCluster tmpCluster = new SingleCluster(i % 2 == 0,
 					(int) layoutBox.getWidth(), (int) layoutBox.getHeight(),
 					pageNumber);
 
-			addPageToCluster(tmpCluster, i, pdfCluster);
+			clusterJob.getClusters().addPageToCluster(tmpCluster, i);
 		}
 		// now render the pages and create the preview images
 		// for every cluster create a set of pages on which the preview will
 		// be based
-		for (PageCluster cluster : pdfCluster.getClustersToPages().keySet()) {
-			cluster.choosePagesToMerge(pdfCluster.getClustersToPages().get(
-					cluster));
+		for (SingleCluster cluster : clusterJob.getClusters().getClustersToPages()
+				.keySet()) {
+			cluster.choosePagesToMerge(clusterJob.getClusters().getClustersToPages()
+					.get(cluster));
 		}
 		reader.close();
 	}
@@ -98,23 +68,24 @@ public class ClusterManager {
 	public static class ClusterRenderWorker extends Thread {
 
 		public int workerUnitCounter = 1;
-		private final ClusterJobData clusterJobData;
+		private final ClusterJob clusterJob;
 
-		public ClusterRenderWorker(ClusterJobData pdfCluster) {
-			this.clusterJobData = pdfCluster;
+		public ClusterRenderWorker(ClusterJob clusterJob) {
+			this.clusterJob = clusterJob;
 		}
 
 		@Override
 		public void run() {
 			PdfDecoder pdfDecoder = new PdfDecoder(true);
 			try {
-				pdfDecoder.openPdfFile(clusterJobData.getFile()
-						.getAbsolutePath());
+				pdfDecoder
+						.openPdfFile(clusterJob.getSource().getAbsolutePath());
 			} catch (PdfException e1) {
 				e1.printStackTrace();
 			}
 
-			for (PageCluster cluster : clusterJobData.getClusters()) {
+			for (SingleCluster cluster : clusterJob.getClusters()
+					.getAsList()) {
 				for (Integer pageNumber : cluster.getPagesToMerge()) {
 					// TODO jpedal isn't able to render big images
 					// correctly, so let's check if the image is big an
@@ -139,10 +110,10 @@ public class ClusterManager {
 	}
 
 	public static Map<Integer, List<Float[]>> getCropRectangles(
-			ClusterJobData clusterJobData) {
+			ClusterSet clusters) {
 		Map<Integer, List<Float[]>> res = new HashMap<Integer, List<Float[]>>();
-		for (int page = 1; page <= clusterJobData.getPageCount(); page++) {
-			res.put(page, getPageCluster(page, clusterJobData).getRatiosList());
+		for (int page = 1; page <= clusters.getPageCount(); page++) {
+			res.put(page, clusters.getSingleCluster(page).getRatiosList());
 		}
 		return res;
 	}

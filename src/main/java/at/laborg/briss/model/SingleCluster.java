@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License along with
  * BRISS. If not, see http://www.gnu.org/licenses/.
  */
-package at.laborg.briss;
+package at.laborg.briss.model;
 
 import java.awt.Color;
 import java.awt.Font;
@@ -27,7 +27,9 @@ import java.awt.image.WritableRaster;
 import java.util.ArrayList;
 import java.util.List;
 
-public class PageCluster implements Comparable<PageCluster> {
+import at.laborg.briss.TMPC;
+
+public class SingleCluster implements Comparable<SingleCluster> {
 
 	private final static int MERGE_VARIABILITY = 20;
 	private final static int MAX_MERGE_PAGES = 20;
@@ -41,6 +43,8 @@ public class PageCluster implements Comparable<PageCluster> {
 	private BufferedImage previewImage;
 	private WritableRaster raster = null;
 	private double[][] imageData = null;
+	public long[][] diffImageData = null;
+	public long[][] lastImageData = null;
 
 	private int excludedPageNumber = -1;
 	private final boolean renderable;
@@ -48,7 +52,7 @@ public class PageCluster implements Comparable<PageCluster> {
 	private final int pageWidth;
 	private final int pageHeight;
 
-	public PageCluster(boolean isEvenPage, int pageWidth, int pageHeight,
+	public SingleCluster(boolean isEvenPage, int pageWidth, int pageHeight,
 			int excludedPageNumber) {
 		super();
 		this.pageWidth = pageWidth;
@@ -75,18 +79,59 @@ public class PageCluster implements Comparable<PageCluster> {
 			raster = previewImage.getRaster().createCompatibleWritableRaster();
 			imageData = new double[previewImage.getWidth()][previewImage
 					.getHeight()];
+			// TODO remove if useless
+			lastImageData = new long[previewImage.getWidth()][previewImage
+					.getHeight()];
+			diffImageData = new long[previewImage.getWidth()][previewImage
+					.getHeight()];
+			int[] tmp = null;
+			for (int k = 0; k < previewImage.getHeight(); ++k) {
+				for (int j = 0; j < previewImage.getWidth(); ++j) {
+					lastImageData[j][k] += previewImage.getRaster().getPixel(j,
+							k, tmp)[0];
+				}
+			}
+			TMPC.imgdata = new int[previewImage.getWidth()][previewImage
+					.getHeight()][pagesToMerge.size()];
+			TMPC.cnt = 0;
+
 		}
 		// scale image to the first added
 		average(scaleImage(imageToAdd, previewImage.getWidth(), previewImage
 				.getHeight()), imageData);
+		adddiff(scaleImage(imageToAdd, previewImage.getWidth(), previewImage
+				.getHeight()), lastImageData, diffImageData);
+	}
+
+	private static void adddiff(BufferedImage curImage, long[][] oldImage,
+			long[][] diffValues) {
+		int[] tmp = null;
+		for (int k = 0; k < curImage.getHeight(); ++k) {
+			for (int j = 0; j < curImage.getWidth(); ++j) {
+				int curP = curImage.getRaster().getPixel(j, k, tmp)[0];
+				if (curP != oldImage[j][k]) {
+					TMPC.imgdata[j][k][TMPC.cnt]++;
+				}
+				diffValues[j][k] += Math.abs(curP - oldImage[j][k]);
+				oldImage[j][k] = curP;
+
+			}
+		}
+		TMPC.cnt++;
 	}
 
 	private static void average(BufferedImage image, double[][] values) {
 		for (int k = 0; k < image.getHeight(); ++k) {
 			for (int j = 0; j < image.getWidth(); ++j) {
-				values[j][k] += image.getRaster().getSample(j, k, 0);
+				// values[j][k] += image.getRaster().getSample(j, k, 0);
+				// if (TMPC.cnt > 0) {
+
+				// }
+				// TMPC.imgdata[j][k][TMPC.cnt] = image.getRaster().getPixel(j,
+				// k, tmp)[0];
 			}
 		}
+		// TMPC.cnt++;
 	}
 
 	private static BufferedImage scaleImage(BufferedImage bsrc, int width,
@@ -128,11 +173,15 @@ public class PageCluster implements Comparable<PageCluster> {
 	}
 
 	public BufferedImage getPreviewImage() {
+
 		if (!renderable)
 			return getUnrenderableImage();
 		for (int k = 0; k < previewImage.getHeight(); ++k) {
 			for (int j = 0; j < previewImage.getWidth(); ++j) {
 				raster.setSample(j, k, 0, Math.round(imageData[j][k]
+						/ (getPagesToMerge().size())));
+				// TODO REMOVE
+				raster.setSample(j, k, 0, Math.round(diffImageData[j][k]
 						/ (getPagesToMerge().size())));
 			}
 		}
@@ -183,7 +232,7 @@ public class PageCluster implements Comparable<PageCluster> {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		PageCluster other = (PageCluster) obj;
+		SingleCluster other = (SingleCluster) obj;
 		if (evenPage != other.evenPage)
 			return false;
 		if (excludedPageNumber != other.excludedPageNumber)
@@ -238,7 +287,7 @@ public class PageCluster implements Comparable<PageCluster> {
 		return renderable;
 	}
 
-	public int compareTo(PageCluster that) {
+	public int compareTo(SingleCluster that) {
 
 		return this.getFirstPage() - that.getFirstPage();
 	}
