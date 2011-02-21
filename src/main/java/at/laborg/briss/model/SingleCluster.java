@@ -27,8 +27,6 @@ import java.awt.image.WritableRaster;
 import java.util.ArrayList;
 import java.util.List;
 
-import at.laborg.briss.TMPC;
-
 public class SingleCluster implements Comparable<SingleCluster> {
 
 	private final static int MERGE_VARIABILITY = 20;

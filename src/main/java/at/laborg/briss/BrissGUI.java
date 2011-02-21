@@ -21,14 +21,10 @@ package at.laborg.briss;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Cursor;
-import java.awt.Desktop;
 import java.awt.Dialog;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Frame;
-import java.awt.datatransfer.DataFlavor;
-import java.awt.datatransfer.Transferable;
-import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
@@ -39,8 +35,6 @@ import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -59,7 +53,6 @@ import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingWorker;
-import javax.swing.TransferHandler;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 
@@ -71,6 +64,8 @@ import at.laborg.briss.gui.WrapLayout;
 import at.laborg.briss.model.ClusterJob;
 import at.laborg.briss.model.CropJob;
 import at.laborg.briss.model.SingleCluster;
+import at.laborg.briss.model.TMPC;
+import at.laborg.briss.utils.DesktopHelper;
 import at.laborg.briss.utils.PDFFileFilter;
 import at.laborg.briss.utils.PageNumberParser;
 
@@ -122,7 +117,7 @@ public class BrissGUI extends JFrame implements ActionListener,
 
 		setDefaultCloseOperation(EXIT_ON_CLOSE);
 
-		this.setTransferHandler(new BrissTransferHandler());
+		this.setTransferHandler(new BrissTransferHandler(this));
 
 		setUILook();
 
@@ -277,7 +272,7 @@ public class BrissGUI extends JFrame implements ActionListener,
 
 	public void actionPerformed(ActionEvent action) {
 		if (action.getActionCommand().equals(DONATE)) {
-			openDonationLink();
+			DesktopHelper.openDonationLink(DONATION_URI);
 		} else if (action.getActionCommand().equals(EXIT)) {
 			System.exit(0);
 		} else if (action.getActionCommand().equals(HELP)) {
@@ -287,148 +282,121 @@ public class BrissGUI extends JFrame implements ActionListener,
 		} else if (action.getActionCommand().equals(MAXIMIZE_WIDTH)) {
 			maximizeWidthInSelectedRects();
 		} else if (action.getActionCommand().equals(EXCLUDE_OTHER_PAGES)) {
-			excludeOtherPages();
+			if (curClusterJob.getSource() == null)
+				return;
+			setWorkingState("Exclude other pages");
+			try {
+				excludeOtherPagesAndCluster();
+				setTitle("BRISS - " + curClusterJob.getSource().getName());
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (PdfException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		} else if (action.getActionCommand().equals(LOAD)) {
 			File inputFile = getNewFileToCrop();
-			importNewPdfFile(inputFile);
-		} else if (action.getActionCommand().equals(CROP)) {
-			cropFile();
-		} else if (action.getActionCommand().equals(PREVIEW)) {
-			createAndShowPreview();
-		}
-	}
-
-	private void createAndShowPreview() {
-		setLongRunningState("Creating and showing preview...");
-		// create temp file and show
-		CropJob cropJob;
-		File tmpCropFileDestination = null;
-		try {
-			tmpCropFileDestination = File.createTempFile("briss", ".pdf");
-			if (tmpCropFileDestination == null)
+			if (inputFile == null)
 				return;
-			if (!tmpCropFileDestination.exists()) {
-				tmpCropFileDestination.createNewFile();
-			}
-			cropJob = CropManager.createCropJob(curClusterJob.getSource());
-			cropJob.setDestinationFile(tmpCropFileDestination);
-			cropJob.setClusters(curClusterJob.getClusters());
-
-			CropManager.crop(cropJob);
-		} catch (DocumentException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		if (Desktop.isDesktopSupported()) {
 			try {
-				Desktop.getDesktop().open(tmpCropFileDestination);
+				setWorkingState("Importing File");
+				importNewPdfFile(inputFile);
+				setTitle("BRISS - " + inputFile.getName());
 			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (PdfException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+
+		} else if (action.getActionCommand().equals(CROP)) {
+			try {
+				setWorkingState("loading PDF");
+				CropJob cropJob = createAndExecuteCropJob();
+				DesktopHelper.openFileWithDesktopApp(cropJob
+						.getDestinationFile());
+				setIdleState("");
+				lastOpenDir = cropJob.getDestinationFile().getParentFile();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (DocumentException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		} else if (action.getActionCommand().equals(PREVIEW)) {
+			try {
+				setWorkingState("Creating and showing preview...");
+				CropJob cropJob = createAndExecuteCropJobForPreview();
+				DesktopHelper.openFileWithDesktopApp(cropJob
+						.getDestinationFile());
+				setIdleState("");
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (DocumentException e) {
+				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
-		setActiveState("");
 	}
 
-	private void cropFile() {
-		setLongRunningState("loading PDF");
-		CropJob cropJob = null;
-		try {
-			cropJob = CropManager.createCropJob(curClusterJob.getSource());
-		} catch (IOException e2) {
-			// TODO Auto-generated catch block
-			e2.printStackTrace();
-		}
-		File recommendedDestinationFile = cropJob.getRecommendedDestination();
-		File cropDestinationFile = getCropFileDestination(recommendedDestinationFile);
-		if (cropDestinationFile == null)
-			return;
-		lastOpenDir = cropDestinationFile.getParentFile();
-		try {
-			if (!cropDestinationFile.exists()) {
-				cropDestinationFile.createNewFile();
-			}
-			cropJob.setDestinationFile(cropDestinationFile);
-			cropJob.setClusters(curClusterJob.getClusters());
-			CropManager.crop(cropJob);
-		} catch (IOException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		} catch (DocumentException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
+	private CropJob createAndExecuteCropJobForPreview() throws IOException,
+			DocumentException {
+		CropJob cropJob = CropManager.createCropJob(curClusterJob);
+		File tmpCropFileDestination = File.createTempFile("briss", ".pdf");
 
-		if (Desktop.isDesktopSupported()) {
-			try {
-				Desktop.getDesktop().open(cropDestinationFile);
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-		setActiveState("");
+		cropJob.setAndCreateDestinationFile(tmpCropFileDestination);
+		CropManager.crop(cropJob);
 
+		return cropJob;
 	}
 
-	private void setActiveState(String stateMessage) {
+	private CropJob createAndExecuteCropJob() throws IOException,
+			DocumentException {
+		CropJob cropJob = CropManager.createCropJob(curClusterJob);
+		File cropDestinationFile = getCropFileDestination(cropJob
+				.getRecommendedDestination());
+
+		cropJob.setAndCreateDestinationFile(cropDestinationFile);
+		CropManager.crop(cropJob);
+
+		return cropJob;
+	}
+
+	private void setIdleState(String stateMessage) {
 		progressBar.setValue(0);
 		progressBar.setString(stateMessage);
 		setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
 	}
 
-	private void setLongRunningState(String stateMessage) {
+	private void setWorkingState(String stateMessage) {
 		progressBar.setString(stateMessage);
 		setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-
 	}
 
-	private void importNewPdfFile(File loadFile) {
-		if (loadFile == null)
-			return;
-		setLongRunningState("Importing File");
+	void importNewPdfFile(File loadFile) throws IOException, PdfException {
+
 		lastOpenDir = loadFile.getParentFile();
-		setTitle("BRISS - " + loadFile.getName());
-		try {
-			curClusterJob = ClusterManager.createClusterJob(loadFile);
-			curClusterJob.setExcludedPageSet(getExcludedPages());
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (PdfException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		curClusterJob = ClusterManager.createClusterJob(loadFile);
+		curClusterJob.setExcludedPageSet(getExcludedPages());
 		previewPanel.removeAll();
 		ClusterPagesTask clusterTask = new ClusterPagesTask(curClusterJob);
 		clusterTask.addPropertyChangeListener(this);
 		clusterTask.execute();
 	}
 
-	private void excludeOtherPages() {
-		// reloadPDF with new excluded Pages
-		if (curClusterJob.getSource() == null)
-			return; // nothing todo
-		setLongRunningState("Exclude other pages");
+	private void excludeOtherPagesAndCluster() throws IOException, PdfException {
 
-		setTitle("BRISS - " + curClusterJob.getSource().getName());
-		try {
-			ClusterJob newClusterJob = ClusterManager
-					.createClusterJob(curClusterJob.getSource());
-			newClusterJob.setExcludedPageSet(getExcludedPages());
-			previewPanel.removeAll();
-			ClusterPagesTask clusterTask = new ClusterPagesTask(newClusterJob);
-			clusterTask.addPropertyChangeListener(this);
-			clusterTask.execute();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (PdfException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
+		ClusterJob newClusterJob = ClusterManager
+				.createClusterJob(curClusterJob.getSource());
+		newClusterJob.setExcludedPageSet(getExcludedPages());
+		previewPanel.removeAll();
+		ClusterPagesTask clusterTask = new ClusterPagesTask(newClusterJob);
+		clusterTask.addPropertyChangeListener(this);
+		clusterTask.execute();
 	}
 
 	private void maximizeWidthInSelectedRects() {
@@ -467,19 +435,6 @@ public class BrissGUI extends JFrame implements ActionListener,
 		}
 	}
 
-	private void openDonationLink() {
-		if (Desktop.isDesktopSupported()) {
-			Desktop desktop = Desktop.getDesktop();
-			URI donationURI;
-			try {
-				donationURI = new URI(DONATION_URI);
-				desktop.browse(donationURI);
-			} catch (URISyntaxException e) {
-			} catch (IOException e) {
-			}
-		}
-	}
-
 	public void propertyChange(PropertyChangeEvent evt) {
 		if ("progress".equals(evt.getPropertyName())) {
 			progressBar.setValue((Integer) evt.getNewValue());
@@ -511,10 +466,8 @@ public class BrissGUI extends JFrame implements ActionListener,
 
 	private void setStateAfterClusteringFinished(ClusterJob newClusterJob) {
 
-		// remove old stuff
 		previewPanel.removeAll();
 
-		// create merged panels
 		mergedPanels = new ArrayList<MergedPanel>();
 
 		List<SingleCluster> allClusters = newClusterJob.getClusters()
@@ -527,7 +480,8 @@ public class BrissGUI extends JFrame implements ActionListener,
 							newClusterJob.getSource())) {
 
 				for (Integer pageNumber : cluster.getAllPages()) {
-					SingleCluster p = curClusterJob.getClusters().getSingleCluster(pageNumber);
+					SingleCluster p = curClusterJob.getClusters()
+							.getSingleCluster(pageNumber);
 					for (Float[] ratios : p.getRatiosList()) {
 						cluster.addRatios(ratios);
 					}
@@ -645,53 +599,10 @@ public class BrissGUI extends JFrame implements ActionListener,
 		maximizeHeightButton.setEnabled(true);
 		excludePagesButton.setEnabled(true);
 		showPreviewButton.setEnabled(true);
-		setActiveState("");
+		setIdleState("");
 		pack();
 		setExtendedState(Frame.MAXIMIZED_BOTH);
 		curClusterJob = newClusterJob;
-	}
-
-	private final class BrissTransferHandler extends TransferHandler {
-
-		@Override
-		public boolean canImport(TransferSupport support) {
-			if (!support.isDataFlavorSupported(DataFlavor.stringFlavor))
-				return false;
-			return true;
-
-		}
-
-		@Override
-		public boolean importData(TransferSupport support) {
-			if (!canImport(support))
-				return false;
-
-			// Fetch the Transferable and its data
-			Transferable t = support.getTransferable();
-			try {
-				String dropInput = (String) t
-						.getTransferData(DataFlavor.stringFlavor);
-
-				String[] filenames = dropInput.split("\n");
-
-				for (String filename : filenames) {
-					if (filename.trim().endsWith(".pdf")) {
-						File loadFile = new File(filename);
-						importNewPdfFile(loadFile);
-						break;
-					}
-				}
-
-			} catch (UnsupportedFlavorException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-
-			return true;
-		}
 	}
 
 	private class ClusterPagesTask extends SwingWorker<Void, Void> {

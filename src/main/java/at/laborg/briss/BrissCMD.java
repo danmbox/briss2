@@ -1,3 +1,20 @@
+/**
+ * Copyright 2010 Gerhard Aigner
+ * 
+ * This file is part of BRISS.
+ * 
+ * BRISS is free software: you can redistribute it and/or modify it under the
+ * terms of the GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option) any later
+ * version.
+ * 
+ * BRISS is distributed in the hope that it will be useful, but WITHOUT ANY
+ * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+ * A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License along with
+ * BRISS. If not, see http://www.gnu.org/licenses/.
+ */
 package at.laborg.briss;
 
 import java.awt.image.BufferedImage;
@@ -9,7 +26,6 @@ import org.jpedal.exception.PdfException;
 
 import at.laborg.briss.model.ClusterJob;
 import at.laborg.briss.model.CropJob;
-import at.laborg.briss.model.SingleCluster;
 
 import com.itextpdf.text.DocumentException;
 
@@ -72,10 +88,10 @@ public class BrissCMD {
 		System.out
 				.println("Starting workflow: Finding crop rectangle (Number of cluster: "
 						+ clusterJob.getClusters().getAsList().size() + ").");
-		for (SingleCluster cluster : clusterJob.getClusters().getAsList()) {
-			Float[] ratios = calcCropAutomatic(cluster.getPreviewImage());
-			cluster.addRatios(ratios);
-		}
+		// for (SingleCluster cluster : clusterJob.getClusters().getAsList()) {
+		// Float[] ratios = calcCropAutomatic(cluster.getPreviewImage());
+		// cluster.addRatios(ratios);
+		// }
 	}
 
 	private static void workflowCrop(ClusterJob clusterJob, CropJob cropJob,
@@ -113,7 +129,7 @@ public class BrissCMD {
 						+ " couldn't be created!");
 			}
 
-			cropJob.setDestinationFile(pCV.getDestFile());
+			cropJob.setAndCreateDestinationFile(pCV.getDestFile());
 			cropJob.setClusters(clusterJob.getClusters());
 
 			CropManager.crop(cropJob);

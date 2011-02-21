@@ -1,3 +1,20 @@
+/**
+ * Copyright 2010 Gerhard Aigner
+ * 
+ * This file is part of BRISS.
+ * 
+ * BRISS is free software: you can redistribute it and/or modify it under the
+ * terms of the GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option) any later
+ * version.
+ * 
+ * BRISS is distributed in the hope that it will be useful, but WITHOUT ANY
+ * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+ * A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License along with
+ * BRISS. If not, see http://www.gnu.org/licenses/.
+ */
 package at.laborg.briss;
 
 import java.io.File;
@@ -7,6 +24,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import at.laborg.briss.model.ClusterJob;
 import at.laborg.briss.model.CropJob;
 import at.laborg.briss.model.SingleCluster;
 
@@ -25,15 +43,30 @@ import com.itextpdf.text.pdf.SimpleBookmark;
 
 public class CropManager {
 
-	public static CropJob createCropJob(File source) throws IOException {
+	public static CropJob createCropJob(ClusterJob curClusterJob)
+			throws IOException {
+		File source = curClusterJob.getSource();
 		if (source != null && source.exists()) {
 			PdfReader reader = new PdfReader(source.getAbsolutePath());
 			CropJob result = new CropJob(source, reader.getNumberOfPages(),
 					reader.getInfo(), SimpleBookmark.getBookmark(reader));
 			reader.close();
+			result.setClusters(curClusterJob.getClusters());
 			return result;
 		}
 		return null;
+	}
+
+	public static CropJob createCropJob(File source) throws IOException {
+		CropJob result = null;
+		if (source != null && source.exists()) {
+			PdfReader reader = new PdfReader(source.getAbsolutePath());
+			result = new CropJob(source, reader.getNumberOfPages(), reader
+					.getInfo(), SimpleBookmark.getBookmark(reader));
+			reader.close();
+			return result;
+		}
+		return result;
 	}
 
 	public static void crop(CropJob cropJob) throws IOException,
@@ -83,10 +116,9 @@ public class CropManager {
 
 		PdfDictionary pageDict;
 		int newPageNumber = 1;
-		for (int origPageNumber = 1; origPageNumber <= cropJob
-				.getPageCount(); origPageNumber++) {
-			SingleCluster cluster = cropJob.getClusters()
-					.getSingleCluster(origPageNumber);
+		for (int origPageNumber = 1; origPageNumber <= cropJob.getPageCount(); origPageNumber++) {
+			SingleCluster cluster = cropJob.getClusters().getSingleCluster(
+					origPageNumber);
 
 			// if no crop was selected do nothing
 			if (cluster.getRatiosList().size() == 0) {

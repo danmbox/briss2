@@ -16,6 +16,7 @@
  * You should have received a copy of the GNU General Public License along with
  * BRISS. If not, see http://www.gnu.org/licenses/.
  */
+
 package at.laborg.briss.gui;
 
 import java.awt.AlphaComposite;

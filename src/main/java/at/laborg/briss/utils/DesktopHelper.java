@@ -17,20 +17,33 @@
  */
 package at.laborg.briss.utils;
 
+import java.awt.Desktop;
 import java.io.File;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 
-import javax.swing.filechooser.FileFilter;
-
-public class PDFFileFilter extends FileFilter {
-	@Override
-	public boolean accept(File pathname) {
-		if (pathname.isDirectory())
-			return true;
-		return pathname.toString().toLowerCase().endsWith(".pdf");
+public class DesktopHelper {
+	public static void openFileWithDesktopApp(File cropDestinationFile) {
+		if (Desktop.isDesktopSupported()) {
+			try {
+				Desktop.getDesktop().open(cropDestinationFile);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 
-	@Override
-	public String getDescription() {
-		return null;
+	public static void openDonationLink(String uri) {
+		if (Desktop.isDesktopSupported()) {
+			Desktop desktop = Desktop.getDesktop();
+			URI donationURI;
+			try {
+				donationURI = new URI(uri);
+				desktop.browse(donationURI);
+			} catch (URISyntaxException e) {
+			} catch (IOException e) {
+			}
+		}
 	}
 }

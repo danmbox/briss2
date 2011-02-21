@@ -15,16 +15,10 @@
  * You should have received a copy of the GNU General Public License along with
  * BRISS. If not, see http://www.gnu.org/licenses/.
  */
-package at.laborg.briss;
+package at.laborg.briss.model;
 
-public class Briss {
+public class TMPC {
 
-	public static void main(String args[]) {
-		// check if args are present, if so try to start commandline briss
-		if (args.length > 0) {
-			BrissCMD.autoCrop(args);
-		} else {
-			new BrissGUI();
-		}
-	}
+	public static int[][][] imgdata;
+	public static int cnt = 0;
 }

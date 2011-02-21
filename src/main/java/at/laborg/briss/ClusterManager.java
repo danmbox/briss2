@@ -1,17 +1,30 @@
+/**
+ * Copyright 2010 Gerhard Aigner
+ * 
+ * This file is part of BRISS.
+ * 
+ * BRISS is free software: you can redistribute it and/or modify it under the
+ * terms of the GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option) any later
+ * version.
+ * 
+ * BRISS is distributed in the hope that it will be useful, but WITHOUT ANY
+ * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+ * A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License along with
+ * BRISS. If not, see http://www.gnu.org/licenses/.
+ */
 package at.laborg.briss;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 import org.jpedal.PdfDecoder;
 import org.jpedal.exception.PdfException;
 
 import at.laborg.briss.model.ClusterJob;
-import at.laborg.briss.model.ClusterSet;
 import at.laborg.briss.model.SingleCluster;
 
 import com.itextpdf.text.Rectangle;
@@ -30,12 +43,13 @@ public class ClusterManager {
 	}
 
 	public static void clusterPages(ClusterJob clusterJob) throws IOException {
-		PdfReader reader = new PdfReader(clusterJob.getSource().getAbsolutePath());
-		for (int i = 1; i <= clusterJob.getClusters().getPageCount(); i++) {
-			Rectangle layoutBox = reader.getBoxSize(i, "crop");
+		PdfReader reader = new PdfReader(clusterJob.getSource()
+				.getAbsolutePath());
+		for (int page = 1; page <= clusterJob.getClusters().getPageCount(); page++) {
+			Rectangle layoutBox = reader.getBoxSize(page, "crop");
 
 			if (layoutBox == null) {
-				layoutBox = reader.getBoxSize(i, "media");
+				layoutBox = reader.getBoxSize(page, "media");
 			}
 
 			// create Cluster
@@ -44,23 +58,23 @@ public class ClusterManager {
 
 			int pageNumber = -1;
 			if (clusterJob.getExcludedPageSet() != null
-					&& clusterJob.getExcludedPageSet().contains(i)) {
-				pageNumber = i;
+					&& clusterJob.getExcludedPageSet().contains(page)) {
+				pageNumber = page;
 			}
 
-			SingleCluster tmpCluster = new SingleCluster(i % 2 == 0,
+			SingleCluster tmpCluster = new SingleCluster(page % 2 == 0,
 					(int) layoutBox.getWidth(), (int) layoutBox.getHeight(),
 					pageNumber);
 
-			clusterJob.getClusters().addPageToCluster(tmpCluster, i);
+			clusterJob.getClusters().addPageToCluster(tmpCluster, page);
 		}
-		// now render the pages and create the preview images
+
 		// for every cluster create a set of pages on which the preview will
 		// be based
-		for (SingleCluster cluster : clusterJob.getClusters().getClustersToPages()
-				.keySet()) {
-			cluster.choosePagesToMerge(clusterJob.getClusters().getClustersToPages()
-					.get(cluster));
+		for (SingleCluster cluster : clusterJob.getClusters()
+				.getClustersToPages().keySet()) {
+			cluster.choosePagesToMerge(clusterJob.getClusters()
+					.getClustersToPages().get(cluster));
 		}
 		reader.close();
 	}
@@ -84,8 +98,7 @@ public class ClusterManager {
 				e1.printStackTrace();
 			}
 
-			for (SingleCluster cluster : clusterJob.getClusters()
-					.getAsList()) {
+			for (SingleCluster cluster : clusterJob.getClusters().getAsList()) {
 				for (Integer pageNumber : cluster.getPagesToMerge()) {
 					// TODO jpedal isn't able to render big images
 					// correctly, so let's check if the image is big an
@@ -107,14 +120,5 @@ public class ClusterManager {
 			// now close the reader as it's not used anymore
 			pdfDecoder.closePdfFile();
 		}
-	}
-
-	public static Map<Integer, List<Float[]>> getCropRectangles(
-			ClusterSet clusters) {
-		Map<Integer, List<Float[]>> res = new HashMap<Integer, List<Float[]>>();
-		for (int page = 1; page <= clusters.getPageCount(); page++) {
-			res.put(page, clusters.getSingleCluster(page).getRatiosList());
-		}
-		return res;
 	}
 }

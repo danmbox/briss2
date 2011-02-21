@@ -9,7 +9,7 @@
 	-->
 	<groupId>at.laborg</groupId>
 	<artifactId>briss</artifactId>
-	<version>0.0.12</version>
+	<version>0.0.13</version>
 	<packaging>jar</packaging>
 	<name>briss</name>
 	<properties>
@@ -80,7 +80,7 @@
 		<dependency>
 			<groupId>jpedal</groupId>
 			<artifactId>jpedal</artifactId>
-			<version>4.40b77</version>
+			<version>4.46b42</version>
 			<scope>runtime</scope>
 		</dependency>
 	</dependencies>
