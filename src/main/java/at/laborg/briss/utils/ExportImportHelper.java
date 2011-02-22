@@ -31,7 +31,7 @@ public class ExportImportHelper {
 		StringBuffer result = new StringBuffer();
 		result.append(exportExcludePages(clusterJob.getExcludedPageSet())
 				+ "\n");
-		for (SingleCluster cluster : clusterJob.getClusters().getAsList()) {
+		for (SingleCluster cluster : clusterJob.getClusterCollection().getAsList()) {
 			result.append(exportRatios(cluster.getRatiosList()) + "\n");
 		}
 		return result.toString();

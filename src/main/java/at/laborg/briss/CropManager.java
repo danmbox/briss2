@@ -51,7 +51,7 @@ public class CropManager {
 			CropJob result = new CropJob(source, reader.getNumberOfPages(),
 					reader.getInfo(), SimpleBookmark.getBookmark(reader));
 			reader.close();
-			result.setClusters(curClusterJob.getClusters());
+			result.setClusterCollection(curClusterJob.getClusterCollection());
 			return result;
 		}
 		return null;
@@ -91,8 +91,8 @@ public class CropManager {
 		document.open();
 		PdfImportedPage page;
 
-		for (int pageNumber = 1; pageNumber <= cropJob.getPageCount(); pageNumber++) {
-			SingleCluster currentCluster = cropJob.getClusters()
+		for (int pageNumber = 1; pageNumber <= cropJob.getSourcePageCount(); pageNumber++) {
+			SingleCluster currentCluster = cropJob.getClusterCollection()
 					.getSingleCluster(pageNumber);
 			page = pdfCopy.getImportedPage(reader, pageNumber);
 			pdfCopy.addPage(page);
@@ -116,8 +116,8 @@ public class CropManager {
 
 		PdfDictionary pageDict;
 		int newPageNumber = 1;
-		for (int origPageNumber = 1; origPageNumber <= cropJob.getPageCount(); origPageNumber++) {
-			SingleCluster cluster = cropJob.getClusters().getSingleCluster(
+		for (int origPageNumber = 1; origPageNumber <= cropJob.getSourcePageCount(); origPageNumber++) {
+			SingleCluster cluster = cropJob.getClusterCollection().getSingleCluster(
 					origPageNumber);
 
 			// if no crop was selected do nothing
@@ -151,7 +151,7 @@ public class CropManager {
 			}
 			int[] range = new int[2];
 			range[0] = newPageNumber - 1;
-			range[1] = cropJob.getPageCount()
+			range[1] = cropJob.getSourcePageCount()
 					+ (newPageNumber - origPageNumber);
 			SimpleBookmark.shiftPageNumbers(cropJob.getSourceBookmarks(),
 					cluster.getRatiosList().size() - 1, range);

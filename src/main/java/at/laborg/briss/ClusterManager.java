@@ -24,6 +24,7 @@ import java.io.IOException;
 import org.jpedal.PdfDecoder;
 import org.jpedal.exception.PdfException;
 
+import at.laborg.briss.model.ClusterCollection;
 import at.laborg.briss.model.ClusterJob;
 import at.laborg.briss.model.SingleCluster;
 
@@ -36,8 +37,7 @@ public class ClusterManager {
 			throws IOException, PdfException {
 
 		PdfReader reader = new PdfReader(origFile.getAbsolutePath());
-		ClusterJob clusterJob = new ClusterJob(reader.getNumberOfPages(),
-				origFile);
+		ClusterJob clusterJob = new ClusterJob(origFile);
 		reader.close();
 		return clusterJob;
 	}
@@ -45,7 +45,9 @@ public class ClusterManager {
 	public static void clusterPages(ClusterJob clusterJob) throws IOException {
 		PdfReader reader = new PdfReader(clusterJob.getSource()
 				.getAbsolutePath());
-		for (int page = 1; page <= clusterJob.getClusters().getPageCount(); page++) {
+
+		ClusterCollection clusters=clusterJob.getClusterCollection();
+		for (int page = 1; page <= reader.getNumberOfPages(); page++) {
 			Rectangle layoutBox = reader.getBoxSize(page, "crop");
 
 			if (layoutBox == null) {
@@ -66,15 +68,13 @@ public class ClusterManager {
 					(int) layoutBox.getWidth(), (int) layoutBox.getHeight(),
 					pageNumber);
 
-			clusterJob.getClusters().addPageToCluster(tmpCluster, page);
+			clusters.addPageToCluster(tmpCluster, page);
 		}
 
 		// for every cluster create a set of pages on which the preview will
 		// be based
-		for (SingleCluster cluster : clusterJob.getClusters()
-				.getClustersToPages().keySet()) {
-			cluster.choosePagesToMerge(clusterJob.getClusters()
-					.getClustersToPages().get(cluster));
+		for (SingleCluster cluster : clusters.getClusterToPagesMapping().keySet()) {
+			cluster.choosePagesToMerge(clusters.getClusterToPagesMapping().get(cluster));
 		}
 		reader.close();
 	}
@@ -98,16 +98,17 @@ public class ClusterManager {
 				e1.printStackTrace();
 			}
 
-			for (SingleCluster cluster : clusterJob.getClusters().getAsList()) {
+			for (SingleCluster cluster : clusterJob.getClusterCollection()
+					.getAsList()) {
 				for (Integer pageNumber : cluster.getPagesToMerge()) {
 					// TODO jpedal isn't able to render big images
 					// correctly, so let's check if the image is big an
 					// throw it away
 					try {
-						if (cluster.isFunctional()) {
+						if (cluster.getImageData().isRenderable()) {
 							BufferedImage renderedPage = pdfDecoder
 									.getPageAsImage(pageNumber);
-							cluster.addImageToPreview(renderedPage);
+							cluster.getImageData().addImageToPreview(renderedPage);
 							workerUnitCounter++;
 						}
 					} catch (PdfException e) {

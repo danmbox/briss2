@@ -29,7 +29,7 @@ public class CropJob {
 	private final List<HashMap<String, Object>> sourceBookmarks;
 	private File destinationFile;
 
-	private ClusterSet clusters;
+	private ClusterCollection clusterCollection;
 
 	private static final String RECOMMENDED_ENDING = "_cropped.pdf";
 
@@ -55,7 +55,7 @@ public class CropJob {
 		return source;
 	}
 
-	public int getPageCount() {
+	public int getSourcePageCount() {
 		return sourcePageCount;
 	}
 
@@ -79,12 +79,12 @@ public class CropJob {
 		return new File(recommendedName);
 	}
 
-	public ClusterSet getClusters() {
-		return clusters;
+	public ClusterCollection getClusterCollection() {
+		return clusterCollection;
 	}
 
-	public void setClusters(ClusterSet clusters) {
-		this.clusters = clusters;
+	public void setClusterCollection(ClusterCollection clusters) {
+		this.clusterCollection = clusters;
 	}
 
 }

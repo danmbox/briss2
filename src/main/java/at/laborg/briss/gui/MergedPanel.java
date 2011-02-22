@@ -65,9 +65,9 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 	public MergedPanel(SingleCluster cluster) {
 		super();
 		this.cluster = cluster;
-		this.img = cluster.getPreviewImage();
+		this.img = cluster.getImageData().getPreviewImage();
 		setPreferredSize(new Dimension(img.getWidth(), img.getHeight()));
-		if (cluster.isFunctional()) {
+		if (cluster.getImageData().isRenderable()) {
 			addMouseMotionListener(this);
 			addMouseListener(this);
 		}

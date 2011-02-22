@@ -28,8 +28,6 @@ import java.awt.Frame;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
-import java.awt.image.BufferedImage;
-import java.awt.image.WritableRaster;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.File;
@@ -64,7 +62,6 @@ import at.laborg.briss.gui.WrapLayout;
 import at.laborg.briss.model.ClusterJob;
 import at.laborg.briss.model.CropJob;
 import at.laborg.briss.model.SingleCluster;
-import at.laborg.briss.model.TMPC;
 import at.laborg.briss.utils.DesktopHelper;
 import at.laborg.briss.utils.PDFFileFilter;
 import at.laborg.briss.utils.PageNumberParser;
@@ -441,36 +438,13 @@ public class BrissGUI extends JFrame implements ActionListener,
 		}
 	}
 
-	private static double sd(int[][][] v, int xs, int w, int ys, int h) {
-		double sum = 0;
-		for (int i = xs; i < xs + w; i++) {
-			for (int j = ys; j < ys + h; j++) {
-				for (int k = 0; k < v[0][0].length; k++) {
-					sum += v[i][j][k];
-				}
-			}
-		}
-		double mean = sum / (w * h * v[0][0].length);
-
-		sum = 0;
-		for (int i = xs; i < xs + w; i++) {
-			for (int j = ys; j < ys + h; j++) {
-				for (int k = 0; k < v[0][0].length; k++) {
-					sum += (v[i][j][k] - mean) * (v[i][j][k] - mean);
-				}
-			}
-		}
-		double sd = Math.sqrt(sum / w * h * v[0][0].length);
-		return sd;
-	}
-
 	private void setStateAfterClusteringFinished(ClusterJob newClusterJob) {
 
 		previewPanel.removeAll();
 
 		mergedPanels = new ArrayList<MergedPanel>();
 
-		List<SingleCluster> allClusters = newClusterJob.getClusters()
+		List<SingleCluster> allClusters = newClusterJob.getClusterCollection()
 				.getAsList();
 
 		for (SingleCluster cluster : allClusters) {
@@ -480,7 +454,7 @@ public class BrissGUI extends JFrame implements ActionListener,
 							newClusterJob.getSource())) {
 
 				for (Integer pageNumber : cluster.getAllPages()) {
-					SingleCluster p = curClusterJob.getClusters()
+					SingleCluster p = curClusterJob.getClusterCollection()
 							.getSingleCluster(pageNumber);
 					for (Float[] ratios : p.getRatiosList()) {
 						cluster.addRatios(ratios);
@@ -490,108 +464,6 @@ public class BrissGUI extends JFrame implements ActionListener,
 			MergedPanel p = new MergedPanel(cluster);
 			previewPanel.add(p);
 			mergedPanels.add(p);
-
-			BufferedImage bI = cluster.getPreviewImage();
-			WritableRaster r = bI.getRaster();
-			int[] tmp = null;
-			int[][] data = new int[r.getWidth()][r.getHeight()];
-			for (int i = 0; i < r.getWidth(); i++) {
-				for (int j = 0; j < r.getHeight(); j++) {
-					data[i][j] = r.getPixel(i, j, tmp)[0];
-				}
-			}
-
-			int[] putter = new int[100];
-			for (int i = 0; i < putter.length; i++) {
-				putter[i] = 233;
-			}
-			int[][][] hihi = TMPC.imgdata;
-
-			// TODO !!!!
-			// ausreisser entfernen... ... .. .mmmmhhhmmm
-
-			// reduce
-
-			// for (int i = 0; i < hihi.length; i++) {
-			// for (int j = 0; j < hihi[0].length; j++) {
-			// double[] sdval = new double[1];
-			// sdval[0] = sd(hihi[i][j]);
-			// r.setPixel(i, j, sdval);
-			// }
-			// }
-
-			// int max = 0;
-			// for (int i = 0; i < r.getWidth(); i++) {
-			// for (int j = 0; j < r.getHeight(); j++) {
-			// if (r.getPixel(i, j, tmp)[0] > max) {
-			// max = r.getPixel(i, j, tmp)[0];
-			// }
-			// }
-			// }
-			// float ratio = 255/max;
-			// for (int i = 0; i < r.getWidth(); i++) {
-			// for (int j = 0; j < r.getHeight(); j++) {
-			// int[] vali = r.getPixel(i, j, tmp);
-			// vali[0]=(int) (vali[0]*ratio);
-			// // sdval[0] = sd(hihi[i][j]);
-			// r.setPixel(i, j, vali);
-			// }
-			// }
-			//			 
-			// for (int i = 0; i < wi; i++) {
-			// for (int j = 0; j < hi; j++) {
-			// // double sdblock = sd(r
-			// // .getPixels(i * 10, j * 10, 10, 10, tmp));
-			// // double sdblock = sd()
-			//					
-			//
-			// // for (int k = 0; k < putter.length; k++) {
-			// // putter[i] = (int) sdblock;
-			// // }
-			// for (int k = i * 10; k < (i + 1) * 10; k++) {
-			// for (int l = j * 10; l < (j + 1) * 10; l++) {
-			// data[k][l] = (int) sdblock;
-			// }
-			// }
-			// // System.out.printf("%4.1f ",);
-			// // if (sdblock > 3) {
-			// // r.setPixels(i*10, j*10, 10, 10, putter);
-			// // }
-			// }
-			// System.out.println("");
-			// }
-
-			for (int i = 0; i < (r.getWidth() / 10) - 1; i++) {
-				for (int j = 0; j < (r.getHeight() / 10) - 1; j++) {
-					int[] vali = new int[1];
-					// vali[0] = data[i][j];
-					vali = new int[100];
-					int ssssd = (int) sd(hihi, i * 10, 10, j * 10, 10);
-					for (int s = 0; s < 100; s++) {
-						vali[s] = ssssd;
-					}
-					// vali[0] = (int) sd(hihi,i*10,10,j*10,10);
-					// vali[0]=(int) (vali[0]*ratio);
-					// sdval[0] = sd(hihi[i][j]);
-					r.setPixels(i * 10, j * 10, 10, 10, vali);
-				}
-			}
-			int max = 1;
-			for (int i = 0; i < r.getWidth(); i++) {
-				for (int j = 0; j < r.getHeight(); j++) {
-					if (r.getPixel(i, j, tmp)[0] > max) {
-						max = r.getPixel(i, j, tmp)[0];
-					}
-				}
-			}
-			float ratio = 255 / max;
-			for (int i = 0; i < r.getWidth(); i++) {
-				for (int j = 0; j < r.getHeight(); j++) {
-					int[] vali = r.getPixel(i, j, tmp);
-					vali[0] = (int) (vali[0] * ratio);
-					r.setPixel(i, j, vali);
-				}
-			}
 		}
 		progressBar.setString("Clustering and Rendering finished");
 		cropButton.setEnabled(true);

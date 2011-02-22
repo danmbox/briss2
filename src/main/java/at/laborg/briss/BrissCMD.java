@@ -87,7 +87,7 @@ public class BrissCMD {
 	private static void workflowRectFinding(ClusterJob clusterJob) {
 		System.out
 				.println("Starting workflow: Finding crop rectangle (Number of cluster: "
-						+ clusterJob.getClusters().getAsList().size() + ").");
+						+ clusterJob.getClusterCollection().getAsList().size() + ").");
 		// for (SingleCluster cluster : clusterJob.getClusters().getAsList()) {
 		// Float[] ratios = calcCropAutomatic(cluster.getPreviewImage());
 		// cluster.addRatios(ratios);
@@ -130,7 +130,7 @@ public class BrissCMD {
 			}
 
 			cropJob.setAndCreateDestinationFile(pCV.getDestFile());
-			cropJob.setClusters(clusterJob.getClusters());
+			cropJob.setClusterCollection(clusterJob.getClusterCollection());
 
 			CropManager.crop(cropJob);
 

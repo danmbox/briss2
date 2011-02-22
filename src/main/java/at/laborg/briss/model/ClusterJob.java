@@ -24,15 +24,15 @@ public class ClusterJob {
 
 	private Set<Integer> excludedPageSet;
 	private final File source;
-	private final ClusterSet clusters;
+	private final ClusterCollection clusterCollection;
 
-	public ClusterJob(int pageCount, File inFile) {
-		clusters = new ClusterSet(pageCount);
+	public ClusterJob(File inFile) {
+		clusterCollection = new ClusterCollection();
 		this.source = inFile;
 	}
 
-	public ClusterSet getClusters() {
-		return clusters;
+	public ClusterCollection getClusterCollection() {
+		return clusterCollection;
 	}
 
 	public Set<Integer> getExcludedPageSet() {
@@ -49,7 +49,7 @@ public class ClusterJob {
 
 	public int getTotalWorkUnits() {
 		int size = 0;
-		for (SingleCluster cluster : clusters.getAsList()) {
+		for (SingleCluster cluster : clusterCollection.getAsList()) {
 			size += cluster.getPagesToMerge().size();
 		}
 		return size;
