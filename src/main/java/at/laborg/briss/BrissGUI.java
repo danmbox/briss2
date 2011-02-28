@@ -37,7 +37,6 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Set;
 
 import javax.swing.ImageIcon;
 import javax.swing.JFileChooser;
@@ -59,8 +58,8 @@ import org.jpedal.exception.PdfException;
 import at.laborg.briss.gui.HelpDialog;
 import at.laborg.briss.gui.MergedPanel;
 import at.laborg.briss.gui.WrapLayout;
-import at.laborg.briss.model.ClusterJob;
-import at.laborg.briss.model.CropJob;
+import at.laborg.briss.model.CropDocument;
+import at.laborg.briss.model.PageExcludes;
 import at.laborg.briss.model.SingleCluster;
 import at.laborg.briss.utils.DesktopHelper;
 import at.laborg.briss.utils.PDFFileFilter;
@@ -103,7 +102,7 @@ public class BrissGUI extends JFrame implements ActionListener,
 
 	private File lastOpenDir;
 
-	private ClusterJob curClusterJob;
+	private CropDocument cropDocumenti;
 
 	public BrissGUI() {
 		super("BRISS - BRight Snippet Sire");
@@ -218,7 +217,7 @@ public class BrissGUI extends JFrame implements ActionListener,
 		}
 	}
 
-	private static Set<Integer> getExcludedPages() {
+	private static PageExcludes getExcludedPages() {
 		boolean inputIsValid = false;
 		String previousInput = "";
 
@@ -232,7 +231,8 @@ public class BrissGUI extends JFrame implements ActionListener,
 				return null;
 
 			try {
-				return PageNumberParser.parsePageNumber(input);
+				PageExcludes pageExcludes = new PageExcludes(PageNumberParser.parsePageNumber(input));
+				return pageExcludes;
 			} catch (ParseException e) {
 				JOptionPane.showMessageDialog(null, e.getMessage(),
 						"Input Error", JOptionPane.ERROR_MESSAGE);
@@ -279,12 +279,12 @@ public class BrissGUI extends JFrame implements ActionListener,
 		} else if (action.getActionCommand().equals(MAXIMIZE_WIDTH)) {
 			maximizeWidthInSelectedRects();
 		} else if (action.getActionCommand().equals(EXCLUDE_OTHER_PAGES)) {
-			if (curClusterJob.getSource() == null)
+			if (cropDocumenti.getSourceFile() == null)
 				return;
 			setWorkingState("Exclude other pages");
 			try {
 				excludeOtherPagesAndCluster();
-				setTitle("BRISS - " + curClusterJob.getSource().getName());
+				setTitle("BRISS - " + cropDocumenti.getSourceFile().getName());
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -311,11 +311,10 @@ public class BrissGUI extends JFrame implements ActionListener,
 		} else if (action.getActionCommand().equals(CROP)) {
 			try {
 				setWorkingState("loading PDF");
-				CropJob cropJob = createAndExecuteCropJob();
-				DesktopHelper.openFileWithDesktopApp(cropJob
-						.getDestinationFile());
+				File result = createAndExecuteCropJob(cropDocumenti.getSourceFile());
+				DesktopHelper.openFileWithDesktopApp(result);
 				setIdleState("");
-				lastOpenDir = cropJob.getDestinationFile().getParentFile();
+				lastOpenDir = result.getParentFile();
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -326,9 +325,8 @@ public class BrissGUI extends JFrame implements ActionListener,
 		} else if (action.getActionCommand().equals(PREVIEW)) {
 			try {
 				setWorkingState("Creating and showing preview...");
-				CropJob cropJob = createAndExecuteCropJobForPreview();
-				DesktopHelper.openFileWithDesktopApp(cropJob
-						.getDestinationFile());
+				File result = createAndExecuteCropJobForPreview();
+				DesktopHelper.openFileWithDesktopApp(result);
 				setIdleState("");
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
@@ -340,27 +338,19 @@ public class BrissGUI extends JFrame implements ActionListener,
 		}
 	}
 
-	private CropJob createAndExecuteCropJobForPreview() throws IOException,
+	private File createAndExecuteCropJobForPreview() throws IOException,
 			DocumentException {
-		CropJob cropJob = CropManager.createCropJob(curClusterJob);
 		File tmpCropFileDestination = File.createTempFile("briss", ".pdf");
-
-		cropJob.setAndCreateDestinationFile(tmpCropFileDestination);
-		CropManager.crop(cropJob);
-
-		return cropJob;
+		File result =  cropDocumenti.crop(tmpCropFileDestination);
+		return result;
 	}
 
-	private CropJob createAndExecuteCropJob() throws IOException,
+	private File createAndExecuteCropJob(File source) throws IOException,
 			DocumentException {
-		CropJob cropJob = CropManager.createCropJob(curClusterJob);
-		File cropDestinationFile = getCropFileDestination(cropJob
+		File cropDestinationFile = getCropFileDestination(cropDocumenti
 				.getRecommendedDestination());
-
-		cropJob.setAndCreateDestinationFile(cropDestinationFile);
-		CropManager.crop(cropJob);
-
-		return cropJob;
+		File result = cropDocumenti.crop(cropDestinationFile);
+		return result;
 	}
 
 	private void setIdleState(String stateMessage) {
@@ -377,21 +367,20 @@ public class BrissGUI extends JFrame implements ActionListener,
 	void importNewPdfFile(File loadFile) throws IOException, PdfException {
 
 		lastOpenDir = loadFile.getParentFile();
-		curClusterJob = ClusterManager.createClusterJob(loadFile);
-		curClusterJob.setExcludedPageSet(getExcludedPages());
+		cropDocumenti = CropDocument.createCropDoc(loadFile);
+		cropDocumenti.setPageExcludes(getExcludedPages());
 		previewPanel.removeAll();
-		ClusterPagesTask clusterTask = new ClusterPagesTask(curClusterJob);
+		ClusterPagesTask clusterTask = new ClusterPagesTask(cropDocumenti);
 		clusterTask.addPropertyChangeListener(this);
 		clusterTask.execute();
 	}
 
 	private void excludeOtherPagesAndCluster() throws IOException, PdfException {
 
-		ClusterJob newClusterJob = ClusterManager
-				.createClusterJob(curClusterJob.getSource());
-		newClusterJob.setExcludedPageSet(getExcludedPages());
+		CropDocument newCropDoc = CropDocument.createCropDoc(cropDocumenti.getSourceFile());
+		newCropDoc.setPageExcludes(getExcludedPages());
 		previewPanel.removeAll();
-		ClusterPagesTask clusterTask = new ClusterPagesTask(newClusterJob);
+		ClusterPagesTask clusterTask = new ClusterPagesTask(newCropDoc);
 		clusterTask.addPropertyChangeListener(this);
 		clusterTask.execute();
 	}
@@ -438,23 +427,23 @@ public class BrissGUI extends JFrame implements ActionListener,
 		}
 	}
 
-	private void setStateAfterClusteringFinished(ClusterJob newClusterJob) {
+	private void setStateAfterClusteringFinished(CropDocument newCropDocument) {
 
 		previewPanel.removeAll();
 
 		mergedPanels = new ArrayList<MergedPanel>();
 
-		List<SingleCluster> allClusters = newClusterJob.getClusterCollection()
+		List<SingleCluster> allClusters = newCropDocument.getClusterCollection()
 				.getAsList();
 
 		for (SingleCluster cluster : allClusters) {
 			// check if the previous cluster was just reloaded
-			if (curClusterJob != null
-					&& curClusterJob.getSource().equals(
-							newClusterJob.getSource())) {
+			if (cropDocumenti != null
+					&& cropDocumenti.getSourceFile().equals(
+							newCropDocument.getSourceFile())) {
 
 				for (Integer pageNumber : cluster.getAllPages()) {
-					SingleCluster p = curClusterJob.getClusterCollection()
+					SingleCluster p = cropDocumenti.getClusterCollection()
 							.getSingleCluster(pageNumber);
 					for (Float[] ratios : p.getRatiosList()) {
 						cluster.addRatios(ratios);
@@ -474,38 +463,39 @@ public class BrissGUI extends JFrame implements ActionListener,
 		setIdleState("");
 		pack();
 		setExtendedState(Frame.MAXIMIZED_BOTH);
-		curClusterJob = newClusterJob;
+		cropDocumenti = newCropDocument;
 	}
 
 	private class ClusterPagesTask extends SwingWorker<Void, Void> {
 
-		private final ClusterJob cropJob;
+		private CropDocument cropDoc;
 
-		public ClusterPagesTask(ClusterJob cropJob) {
+		public ClusterPagesTask(CropDocument cropDoc) {
 			super();
-			this.cropJob = cropJob;
+			this.cropDoc = cropDoc;
 			progressBar.setString("Analysing PDF pages");
 		}
 
 		@Override
 		protected void done() {
-			setStateAfterClusteringFinished(cropJob);
+			setStateAfterClusteringFinished(cropDoc);
 		}
 
 		@Override
 		protected Void doInBackground() {
 
 			try {
-				ClusterManager.clusterPages(cropJob);
+				cropDoc.clusterPages();
 
 			} catch (IOException e1) {
 				// TODO Auto-generated catch block
 				e1.printStackTrace();
 			}
 
-			int totalWorkUnits = cropJob.getTotalWorkUnits();
-			ClusterManager.ClusterRenderWorker renderWorker = new ClusterManager.ClusterRenderWorker(
-					cropJob);
+			int totalWorkUnits = cropDoc.getTotalWorkUnits();
+			
+			CropDocument.ClusterRenderWorker renderWorker = new CropDocument.ClusterRenderWorker(
+					cropDoc);
 			renderWorker.start();
 
 			progressBar.setString("PDF analysed - creating merged previews");
