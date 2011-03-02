@@ -12,12 +12,12 @@ public class ClusterImageData {
 	private final static int MAX_PAGE_HEIGHT = 900;
 	private final static int MAX_IMAGE_RENDER_SIZE = 2000 * 2000;
 
-	private boolean renderable;
+	private final boolean renderable;
 	private BufferedImage previewImage;
 	private WritableRaster raster = null;
 	private short[][][] imgdata;
 	private int imageCnt = 0;
-	private int totalImages;
+	private final int totalImages;
 
 	public ClusterImageData(int pageWidth, int pageHeight, int nrOfImages) {
 		this.renderable = pageWidth * pageHeight < MAX_IMAGE_RENDER_SIZE;

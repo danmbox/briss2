@@ -18,62 +18,52 @@
 package at.laborg.briss.model;
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 
 public class ClusterCollection {
-	private HashMap<Integer, SingleCluster> pageToClustersMapping;
-	private HashMap<SingleCluster, List<Integer>> clusterToPagesMapping;
-	private boolean dirty;
 
-	public ClusterCollection() {
-		this.dirty = true;
-		this.pageToClustersMapping = new HashMap<Integer, SingleCluster>();
-		this.clusterToPagesMapping = new HashMap<SingleCluster, List<Integer>>();
-	}
-
-	private <T extends Comparable<? super T>> List<T> asSortedList(
-			Collection<T> c) {
-		List<T> list = new ArrayList<T>(c);
-		java.util.Collections.sort(list);
-		return list;
-	}
-
-	public List<SingleCluster> getAsList() {
-		return asSortedList(getClusterToPagesMapping().keySet());
-	}
-
-	public HashMap<SingleCluster, List<Integer>> getClusterToPagesMapping() {
-		return clusterToPagesMapping;
-	}
+	private final List<SingleCluster> clusters = new ArrayList<SingleCluster>();
 
 	public SingleCluster getSingleCluster(int pageNumber) {
-		if (dirty) {
-			for (SingleCluster cluster : getClusterToPagesMapping().keySet()) {
-				for (Integer page : getClusterToPagesMapping().get(cluster)) {
-					pageToClustersMapping.put(page - 1, cluster);
-				}
-			}
-			dirty = false;
+		for (SingleCluster cluster : clusters) {
+			if (cluster.getAllPages().contains(pageNumber))
+				return cluster;
 		}
-		return pageToClustersMapping.get(pageNumber - 1);
+		return null;
 	}
 
-	public void addPageToCluster(SingleCluster tmpCluster, int pageNumber) {
-		if (getClusterToPagesMapping().containsKey(tmpCluster)) {
-			// cluster exists
-			List<Integer> pageNumbers = getClusterToPagesMapping().get(tmpCluster);
-			pageNumbers.add(pageNumber);
+	public List<SingleCluster> getClusters() {
+		return clusters;
+	}
 
+	public void addOrMergeCluster(SingleCluster tmpCluster) {
+		SingleCluster existingCluster = findNearlyEqualCluster(tmpCluster);
+		if (existingCluster != null) {
+			existingCluster.mergeClusters(tmpCluster);
 		} else {
-			// new Cluster
-			List<Integer> pageNumbers = new ArrayList<Integer>();
-			pageNumbers.add(pageNumber);
-			getClusterToPagesMapping().put(tmpCluster, pageNumbers);
+			clusters.add(tmpCluster);
 		}
-		// whenever a page was added the pagesToClustersMapping isn't useful
-		// anymore. This musst be handled when reading the pages
-		dirty = true;
+	}
+
+	private SingleCluster findNearlyEqualCluster(SingleCluster clusterToCheck) {
+		for (SingleCluster cluster : clusters) {
+			if (cluster.isClusterNearlyEqual(clusterToCheck))
+				return cluster;
+		}
+		return null;
+	}
+
+	public void selectAndSetPagesForMerging() {
+		for (SingleCluster cluster : clusters) {
+			cluster.choosePagesToMerge();
+		}
+	}
+
+	public int getNrOfPagesToRender() {
+		int size = 0;
+		for (SingleCluster cluster : clusters) {
+			size += cluster.getPagesToMerge().size();
+		}
+		return size;
 	}
 }
