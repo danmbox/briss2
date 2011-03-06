@@ -17,7 +17,6 @@
  */
 package at.laborg.briss.utils;
 
-
 public class ExportImportHelper {
 
 	// public static String export(ClusterJob clusterJob) {

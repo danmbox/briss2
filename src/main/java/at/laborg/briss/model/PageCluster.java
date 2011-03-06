@@ -21,7 +21,7 @@ package at.laborg.briss.model;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SingleCluster implements Comparable<SingleCluster> {
+public class PageCluster implements Comparable<PageCluster> {
 
 	private final static int MERGE_VARIABILITY = 20;
 	private final static int MAX_MERGE_PAGES = 20;
@@ -38,7 +38,7 @@ public class SingleCluster implements Comparable<SingleCluster> {
 	private final int pageWidth;
 	private final int pageHeight;
 
-	public SingleCluster(boolean isEvenPage, int pageWidth, int pageHeight,
+	public PageCluster(boolean isEvenPage, int pageWidth, int pageHeight,
 			boolean excluded, int pageNumber) {
 		super();
 		this.pageWidth = pageWidth;
@@ -81,10 +81,10 @@ public class SingleCluster implements Comparable<SingleCluster> {
 		}
 	}
 
-	public boolean isClusterNearlyEqual(SingleCluster other) {
+	public boolean isClusterNearlyEqual(PageCluster other) {
 		if (evenPage != other.evenPage)
 			return false;
-		if (excluded)
+		if (excluded || other.excluded)
 			return false;
 		if (getRoundedPageHeight() != other.getRoundedPageHeight())
 			return false;
@@ -93,7 +93,7 @@ public class SingleCluster implements Comparable<SingleCluster> {
 		return true;
 	}
 
-	public void mergeClusters(SingleCluster other) {
+	public void mergeClusters(PageCluster other) {
 		allPages.addAll(other.getAllPages());
 	}
 
@@ -135,7 +135,7 @@ public class SingleCluster implements Comparable<SingleCluster> {
 		return pagesToMerge;
 	}
 
-	public int compareTo(SingleCluster that) {
+	public int compareTo(PageCluster that) {
 		return this.getFirstPage() - that.getFirstPage();
 	}
 

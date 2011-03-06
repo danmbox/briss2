@@ -22,22 +22,22 @@ import java.util.List;
 
 public class ClusterCollection {
 
-	private final List<SingleCluster> clusters = new ArrayList<SingleCluster>();
+	private final List<PageCluster> clusters = new ArrayList<PageCluster>();
 
-	public SingleCluster getSingleCluster(int pageNumber) {
-		for (SingleCluster cluster : clusters) {
+	public PageCluster getSingleCluster(int pageNumber) {
+		for (PageCluster cluster : clusters) {
 			if (cluster.getAllPages().contains(pageNumber))
 				return cluster;
 		}
 		return null;
 	}
 
-	public List<SingleCluster> getClusters() {
+	public List<PageCluster> getClusters() {
 		return clusters;
 	}
 
-	public void addOrMergeCluster(SingleCluster tmpCluster) {
-		SingleCluster existingCluster = findNearlyEqualCluster(tmpCluster);
+	public void addOrMergeCluster(PageCluster tmpCluster) {
+		PageCluster existingCluster = findNearlyEqualCluster(tmpCluster);
 		if (existingCluster != null) {
 			existingCluster.mergeClusters(tmpCluster);
 		} else {
@@ -45,8 +45,8 @@ public class ClusterCollection {
 		}
 	}
 
-	private SingleCluster findNearlyEqualCluster(SingleCluster clusterToCheck) {
-		for (SingleCluster cluster : clusters) {
+	private PageCluster findNearlyEqualCluster(PageCluster clusterToCheck) {
+		for (PageCluster cluster : clusters) {
 			if (cluster.isClusterNearlyEqual(clusterToCheck))
 				return cluster;
 		}
@@ -54,14 +54,14 @@ public class ClusterCollection {
 	}
 
 	public void selectAndSetPagesForMerging() {
-		for (SingleCluster cluster : clusters) {
+		for (PageCluster cluster : clusters) {
 			cluster.choosePagesToMerge();
 		}
 	}
 
 	public int getNrOfPagesToRender() {
 		int size = 0;
-		for (SingleCluster cluster : clusters) {
+		for (PageCluster cluster : clusters) {
 			size += cluster.getPagesToMerge().size();
 		}
 		return size;

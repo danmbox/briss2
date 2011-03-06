@@ -18,19 +18,23 @@
  */
 package at.laborg.briss.utils;
 
+import java.io.File;
 import java.io.IOException;
 
+import at.laborg.briss.model.ClusterCollection;
 import at.laborg.briss.model.PageExcludes;
-import at.laborg.briss.model.SingleCluster;
+import at.laborg.briss.model.PageCluster;
 
 import com.itextpdf.text.Rectangle;
 import com.itextpdf.text.pdf.PdfReader;
 
 public class ClusterCreator {
 
-	public static void clusterPages(CropDocument cropDoc) throws IOException {
-		PdfReader reader = new PdfReader(cropDoc.getSourceFile()
-				.getAbsolutePath());
+	public static ClusterCollection clusterPages(File source,
+			PageExcludes pageExcludes) throws IOException {
+		PdfReader reader = new PdfReader(source.getAbsolutePath());
+
+		ClusterCollection clusters = new ClusterCollection();
 
 		for (int page = 1; page <= reader.getNumberOfPages(); page++) {
 
@@ -40,17 +44,18 @@ public class ClusterCreator {
 			// if the pagenumber should be excluded then use it as a
 			// discriminating parameter, else use default value
 
-			boolean excluded = checkExclusionAndGetPageNumber(cropDoc
-					.getPageExcludes(), page);
+			boolean excluded = checkExclusionAndGetPageNumber(pageExcludes,
+					page);
 
-			SingleCluster tmpCluster = new SingleCluster(page % 2 == 0,
+			PageCluster tmpCluster = new PageCluster(page % 2 == 0,
 					(int) layoutBox.getWidth(), (int) layoutBox.getHeight(),
 					excluded, page);
 
-			cropDoc.getClusterCollection().addOrMergeCluster(tmpCluster);
+			clusters.addOrMergeCluster(tmpCluster);
 		}
 		reader.close();
-		cropDoc.getClusterCollection().selectAndSetPagesForMerging();
+		clusters.selectAndSetPagesForMerging();
+		return clusters;
 	}
 
 	private static Rectangle getLayoutBox(PdfReader reader, int page) {

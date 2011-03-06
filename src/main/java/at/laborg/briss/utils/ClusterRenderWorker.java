@@ -1,35 +1,39 @@
 /**
  * 
  */
-package at.laborg.briss.model;
+package at.laborg.briss.utils;
 
 import java.awt.image.BufferedImage;
+import java.io.File;
 
 import org.jpedal.PdfDecoder;
 import org.jpedal.exception.PdfException;
 
-import at.laborg.briss.utils.CropDocument;
+import at.laborg.briss.model.ClusterCollection;
+import at.laborg.briss.model.PageCluster;
 
 public class ClusterRenderWorker extends Thread {
 
 	public int workerUnitCounter = 1;
-	private final CropDocument cropDoc;
+	private final File source;
+	private final ClusterCollection clusters;
 
-	public ClusterRenderWorker(CropDocument cropDoc) {
-		this.cropDoc = cropDoc;
+	public ClusterRenderWorker(File source, ClusterCollection clusters) {
+		super();
+		this.source = source;
+		this.clusters = clusters;
 	}
 
 	@Override
 	public void run() {
 		PdfDecoder pdfDecoder = new PdfDecoder(true);
 		try {
-			pdfDecoder.openPdfFile(cropDoc.getSourceFile().getAbsolutePath());
+			pdfDecoder.openPdfFile(source.getAbsolutePath());
 		} catch (PdfException e1) {
 			e1.printStackTrace();
 		}
 
-		for (SingleCluster cluster : cropDoc.getClusterCollection()
-				.getClusters()) {
+		for (PageCluster cluster : clusters.getClusters()) {
 			for (Integer pageNumber : cluster.getPagesToMerge()) {
 				// TODO jpedal isn't able to render big images
 				// correctly, so let's check if the image is big an

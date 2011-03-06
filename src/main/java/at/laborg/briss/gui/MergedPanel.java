@@ -39,7 +39,7 @@ import java.util.List;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 
-import at.laborg.briss.model.SingleCluster;
+import at.laborg.briss.model.PageCluster;
 
 @SuppressWarnings("serial")
 public class MergedPanel extends JPanel implements MouseMotionListener,
@@ -47,8 +47,8 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 
 	// last drawn rectangle. a "ghosting" rectangle will
 	// help the user to create the two equally sized crop rectangles
-	private static CropRect lastCrop;
-	private static CropRect curCrop;
+	private static DrawableCropRect lastCrop;
+	private static DrawableCropRect curCrop;
 	private static Point lastDragPoint;
 	private static Point cropStartPoint;
 	private static int dragCropIndex = -1;
@@ -58,11 +58,11 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 	private final static Composite compositeXor = AlphaComposite.getInstance(
 			AlphaComposite.SRC_OVER, .8f);
 
-	private final List<CropRect> crops = new ArrayList<CropRect>();
-	private final SingleCluster cluster;
+	private final List<DrawableCropRect> crops = new ArrayList<DrawableCropRect>();
+	private final PageCluster cluster;
 	private final BufferedImage img;
 
-	public MergedPanel(SingleCluster cluster) {
+	public MergedPanel(PageCluster cluster) {
 		super();
 		this.cluster = cluster;
 		this.img = cluster.getImageData().getPreviewImage();
@@ -77,7 +77,7 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 
 	private void addRatiosAsCrops(List<Float[]> ratiosList) {
 		for (Float[] ratios : cluster.getRatiosList()) {
-			CropRect rect = new CropRect();
+			DrawableCropRect rect = new DrawableCropRect();
 			rect.x = (int) (img.getWidth() * ratios[0]);
 			rect.y = (int) (img.getHeight() * ratios[3]);
 			rect.width = (int) (img.getWidth() * (1 - (ratios[0] + ratios[2])));
@@ -86,7 +86,7 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 		}
 	}
 
-	private String createInfoString(SingleCluster cluster) {
+	private String createInfoString(PageCluster cluster) {
 		StringBuilder sb = new StringBuilder();
 		sb.append("<html>");
 		sb.append(cluster.isEvenPage() ? "Even " : "Odd ").append("page<br>");
@@ -120,7 +120,7 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 		int cropCnt = 0;
 		Font currentFont = g2.getFont();
 		g2.setComposite(compositeSmooth);
-		for (CropRect crop : crops) {
+		for (DrawableCropRect crop : crops) {
 			g2.setColor(Color.BLUE);
 			g2.fill(crop);
 
@@ -170,7 +170,7 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 				cropStartPoint = curPoint;
 			}
 			// create the rectangle to draw
-			curCrop = new CropRect();
+			curCrop = new DrawableCropRect();
 			curCrop.x = (curPoint.x < cropStartPoint.x) ? curPoint.x
 					: cropStartPoint.x;
 			curCrop.width = Math.abs(curPoint.x - cropStartPoint.x);
@@ -206,7 +206,7 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 		Point p = mE.getPoint();
 
 		if (mE.isControlDown()) {
-			for (CropRect crop : crops) {
+			for (DrawableCropRect crop : crops) {
 				if (crop.contains(p)) {
 					crop.setSelected(!crop.isSelected());
 				}
@@ -241,7 +241,7 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 
 	public int getWidestSelectedRect() {
 		int max = -1;
-		for (CropRect crop : crops) {
+		for (DrawableCropRect crop : crops) {
 			if (crop.isSelected()) {
 				if (crop.width > max) {
 					max = crop.width;
@@ -253,7 +253,7 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 
 	public int getHeighestSelectedRect() {
 		int max = -1;
-		for (CropRect crop : crops) {
+		for (DrawableCropRect crop : crops) {
 			if (crop.isSelected()) {
 				if (crop.height > max) {
 					max = crop.height;
@@ -264,7 +264,7 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 	}
 
 	public void setSelCropWidth(int width) {
-		for (CropRect crop : crops) {
+		for (DrawableCropRect crop : crops) {
 			if (crop.isSelected()) {
 				int diffToMax = width - crop.width;
 				crop.grow(diffToMax / 2, 0);
@@ -275,7 +275,7 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 	}
 
 	public void setSelCropHeight(int height) {
-		for (CropRect crop : crops) {
+		for (DrawableCropRect crop : crops) {
 			if (crop.isSelected()) {
 				int diffToMax = height - crop.height;
 				crop.grow(0, diffToMax / 2);
@@ -307,7 +307,7 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 		repaint();
 	}
 
-	private void updateClusterRatios(List<CropRect> tmpCrops) {
+	private void updateClusterRatios(List<DrawableCropRect> tmpCrops) {
 		cluster.clearRatios();
 		for (Rectangle crop : tmpCrops) {
 			cluster.addRatios(getCutRatiosForPdf(crop, img.getWidth(), img
@@ -374,18 +374,5 @@ public class MergedPanel extends JPanel implements MouseMotionListener,
 		return g.getFont().deriveFont(
 				(scaleFactorHeight > scaleFactorWidth) ? scaledWidth
 						: scaledHeight);
-	}
-
-	private class CropRect extends Rectangle {
-		private boolean selected = false;
-
-		public boolean isSelected() {
-			return selected;
-		}
-
-		public void setSelected(boolean selected) {
-			this.selected = selected;
-		}
-
 	}
 }

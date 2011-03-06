@@ -135,22 +135,6 @@ public class BrissCMD {
 	// }
 	// }
 
-	private static float mean(float[] x, int startIndex, int endIndex) {
-		float sum = 0;
-		for (int i = startIndex; i < endIndex; i++) {
-			sum += x[i];
-		}
-		return sum / (endIndex - startIndex);
-	}
-
-	private static float rauschmas(long[] x, int startIndex, int endIndex) {
-		float sum = 0;
-		for (int i = startIndex; i < endIndex; i++) {
-			sum += Math.abs(x[i]);
-		}
-		return sum / (endIndex - startIndex);
-	}
-
 	private static class CommandValues {
 
 		private final static String SOURCE_FILE_CMD = "-s";
@@ -161,8 +145,6 @@ public class BrissCMD {
 		private final static String OVERWRITE = "-o";
 
 		private File sourceFile;
-		private File destFile;
-		private boolean overwrite = false;
 
 		static CommandValues parseToJob(String[] args) {
 			CommandValues job = new CommandValues();
@@ -223,11 +205,9 @@ public class BrissCMD {
 		}
 
 		public void setOverwrite(boolean overwrite) {
-			this.overwrite = overwrite;
 		}
 
 		public void setDestFile(File destFile) {
-			this.destFile = destFile;
 		}
 
 		public void setPageMergeNumber(int pageMergeNumber) {
