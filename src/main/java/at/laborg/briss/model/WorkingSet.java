@@ -21,7 +21,7 @@ import java.io.File;
 
 public class WorkingSet {
 	private File sourceFile;
-	private ClusterCollection clusters;
+	private ClusterDefinition clusters;
 	private PageExcludes pageExcludes;
 
 	@SuppressWarnings("unused")
@@ -30,7 +30,7 @@ public class WorkingSet {
 
 	public WorkingSet(File sourceFile) {
 		this.sourceFile = sourceFile;
-		clusters = new ClusterCollection();
+		clusters = new ClusterDefinition();
 	}
 
 	public File getSourceFile() {
@@ -41,11 +41,11 @@ public class WorkingSet {
 		this.sourceFile = sourceFile;
 	}
 
-	public ClusterCollection getClusters() {
+	public ClusterDefinition getClusterDefinition() {
 		return clusters;
 	}
 
-	public void setClusters(ClusterCollection clusters) {
+	public void setClusters(ClusterDefinition clusters) {
 		this.clusters = clusters;
 	}
 

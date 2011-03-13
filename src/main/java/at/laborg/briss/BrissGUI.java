@@ -58,10 +58,10 @@ import org.jpedal.exception.PdfException;
 import at.laborg.briss.gui.HelpDialog;
 import at.laborg.briss.gui.MergedPanel;
 import at.laborg.briss.gui.WrapLayout;
-import at.laborg.briss.model.ClusterCollection;
+import at.laborg.briss.model.ClusterDefinition;
 import at.laborg.briss.model.CropDefinition;
-import at.laborg.briss.model.PageExcludes;
 import at.laborg.briss.model.PageCluster;
+import at.laborg.briss.model.PageExcludes;
 import at.laborg.briss.model.WorkingSet;
 import at.laborg.briss.utils.BrissFileHandling;
 import at.laborg.briss.utils.ClusterCreator;
@@ -237,8 +237,8 @@ public class BrissGUI extends JFrame implements ActionListener,
 				return null;
 
 			try {
-				PageExcludes pageExcludes = new PageExcludes(PageNumberParser
-						.parsePageNumber(input));
+				PageExcludes pageExcludes = new PageExcludes(
+						PageNumberParser.parsePageNumber(input));
 				return pageExcludes;
 			} catch (ParseException e) {
 				JOptionPane.showMessageDialog(null, e.getMessage(),
@@ -276,6 +276,7 @@ public class BrissGUI extends JFrame implements ActionListener,
 		return null;
 	}
 
+	@Override
 	public void actionPerformed(ActionEvent action) {
 		if (action.getActionCommand().equals(DONATE)) {
 			DesktopHelper.openDonationLink(DONATION_URI);
@@ -306,7 +307,6 @@ public class BrissGUI extends JFrame implements ActionListener,
 			if (inputFile == null)
 				return;
 			try {
-				setWorkingState("Importing File");
 				importNewPdfFile(inputFile);
 				setTitle("BRISS - " + inputFile.getName());
 			} catch (IOException e) {
@@ -322,9 +322,11 @@ public class BrissGUI extends JFrame implements ActionListener,
 				setWorkingState("loading PDF");
 				File result = createAndExecuteCropJob(workingSet
 						.getSourceFile());
-				DesktopHelper.openFileWithDesktopApp(result);
+				if (result != null) {
+					DesktopHelper.openFileWithDesktopApp(result);
+					lastOpenDir = result.getParentFile();
+				}
 				setIdleState("");
-				lastOpenDir = result.getParentFile();
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -352,8 +354,8 @@ public class BrissGUI extends JFrame implements ActionListener,
 			DocumentException {
 		File tmpCropFileDestination = File.createTempFile("briss", ".pdf");
 		CropDefinition cropDefinition = CropDefinition.createCropDefinition(
-				workingSet.getSourceFile(), tmpCropFileDestination, workingSet
-						.getClusters());
+				workingSet.getSourceFile(), tmpCropFileDestination,
+				workingSet.getClusterDefinition());
 		File result = DocumentCropper.crop(cropDefinition);
 		return result;
 	}
@@ -362,9 +364,11 @@ public class BrissGUI extends JFrame implements ActionListener,
 			DocumentException {
 		File cropDestinationFile = getCropFileDestination(workingSet
 				.getSourceFile());
+		if (cropDestinationFile == null)
+			return null;
 		CropDefinition cropDefinition = CropDefinition.createCropDefinition(
-				workingSet.getSourceFile(), cropDestinationFile, workingSet
-						.getClusters());
+				workingSet.getSourceFile(), cropDestinationFile,
+				workingSet.getClusterDefinition());
 		File result = DocumentCropper.crop(cropDefinition);
 		return result;
 	}
@@ -393,8 +397,8 @@ public class BrissGUI extends JFrame implements ActionListener,
 	private void reloadWithOtherExcludes() throws IOException, PdfException {
 		previewPanel.removeAll();
 		progressBar.setString("Reloading file - Creating merged previews");
-		ClusterPagesTask clusterTask = new ClusterPagesTask(workingSet
-				.getSourceFile(), getExcludedPages());
+		ClusterPagesTask clusterTask = new ClusterPagesTask(
+				workingSet.getSourceFile(), getExcludedPages());
 		clusterTask.addPropertyChangeListener(this);
 		clusterTask.execute();
 	}
@@ -435,13 +439,14 @@ public class BrissGUI extends JFrame implements ActionListener,
 		}
 	}
 
+	@Override
 	public void propertyChange(PropertyChangeEvent evt) {
 		if ("progress".equals(evt.getPropertyName())) {
 			progressBar.setValue((Integer) evt.getNewValue());
 		}
 	}
 
-	private void setStateAfterClusteringFinished(ClusterCollection newClusters,
+	private void setStateAfterClusteringFinished(ClusterDefinition newClusters,
 			PageExcludes newPageExcludes, File newSource) {
 
 		updateWorkingSet(newClusters, newPageExcludes, newSource);
@@ -449,7 +454,8 @@ public class BrissGUI extends JFrame implements ActionListener,
 		previewPanel.removeAll();
 		mergedPanels = new ArrayList<MergedPanel>();
 
-		for (PageCluster cluster : workingSet.getClusters().getClusters()) {
+		for (PageCluster cluster : workingSet.getClusterDefinition()
+				.getClusterList()) {
 			MergedPanel p = new MergedPanel(cluster);
 			previewPanel.add(p);
 			mergedPanels.add(p);
@@ -465,24 +471,24 @@ public class BrissGUI extends JFrame implements ActionListener,
 		setExtendedState(Frame.MAXIMIZED_BOTH);
 	}
 
-	private void updateWorkingSet(ClusterCollection newClusters,
+	private void updateWorkingSet(ClusterDefinition newClusters,
 			PageExcludes newPageExcludes, File newSource) {
 		if (workingSet == null) {
 			// completely new
 			workingSet = new WorkingSet(newSource);
 		} else if (workingSet.getSourceFile().equals(newSource)) {
 			// just reload with other excludes
-			copyCropsToClusters(workingSet.getClusters(), newClusters);
+			copyCropsToClusters(workingSet.getClusterDefinition(), newClusters);
 		}
 		workingSet.setSourceFile(newSource);
 		workingSet.setClusters(newClusters);
 		workingSet.setPageExcludes(newPageExcludes);
 	}
 
-	private void copyCropsToClusters(ClusterCollection oldClusters,
-			ClusterCollection newClusters) {
+	private void copyCropsToClusters(ClusterDefinition oldClusters,
+			ClusterDefinition newClusters) {
 
-		for (PageCluster newCluster : newClusters.getClusters()) {
+		for (PageCluster newCluster : newClusters.getClusterList()) {
 			for (Integer pageNumber : newCluster.getAllPages()) {
 				PageCluster oldCluster = oldClusters
 						.getSingleCluster(pageNumber);
@@ -497,25 +503,26 @@ public class BrissGUI extends JFrame implements ActionListener,
 
 		private final File source;
 		private final PageExcludes pageExcludes;
-		private ClusterCollection clusters = null;
+		private ClusterDefinition clusterDefinition = null;
 
 		public ClusterPagesTask(File source, PageExcludes pageExcludes) {
 			super();
 			this.source = source;
 			this.pageExcludes = pageExcludes;
-
 		}
 
 		@Override
 		protected void done() {
-			setStateAfterClusteringFinished(clusters, pageExcludes, source);
+			setStateAfterClusteringFinished(clusterDefinition, pageExcludes,
+					source);
 		}
 
 		@Override
 		protected Void doInBackground() {
 
 			try {
-				clusters = ClusterCreator.clusterPages(source, pageExcludes);
+				clusterDefinition = ClusterCreator.clusterPages(source,
+						pageExcludes);
 
 			} catch (IOException e1) {
 				// TODO Auto-generated catch block
@@ -523,9 +530,9 @@ public class BrissGUI extends JFrame implements ActionListener,
 				return null;
 			}
 
-			int totalWorkUnits = clusters.getNrOfPagesToRender();
+			int totalWorkUnits = clusterDefinition.getNrOfPagesToRender();
 			ClusterRenderWorker renderWorker = new ClusterRenderWorker(source,
-					clusters);
+					clusterDefinition);
 			renderWorker.start();
 
 			while (renderWorker.isAlive()) {

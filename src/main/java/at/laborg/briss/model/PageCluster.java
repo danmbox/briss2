@@ -24,7 +24,7 @@ import java.util.List;
 public class PageCluster implements Comparable<PageCluster> {
 
 	private final static int MERGE_VARIABILITY = 20;
-	private final static int MAX_MERGE_PAGES = 20;
+	private final static int MAX_MERGE_PAGES = 15;
 
 	private List<Integer> pagesToMerge;
 	private final List<Integer> allPages;
@@ -135,6 +135,7 @@ public class PageCluster implements Comparable<PageCluster> {
 		return pagesToMerge;
 	}
 
+	@Override
 	public int compareTo(PageCluster that) {
 		return this.getFirstPage() - that.getFirstPage();
 	}

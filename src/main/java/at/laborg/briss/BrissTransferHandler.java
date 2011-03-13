@@ -22,6 +22,8 @@ import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 
 import javax.swing.TransferHandler;
 
@@ -58,8 +60,19 @@ final class BrissTransferHandler extends TransferHandler {
 			String[] filenames = dropInput.split("\n");
 
 			for (String filename : filenames) {
+				filename = filename.replaceAll("\\n", "");
+				filename = filename.replaceAll("\\t", "");
+				filename = filename.replaceAll("\\r", "");
+
 				if (filename.trim().endsWith(".pdf")) {
-					File loadFile = new File(filename);
+					File loadFile = null;
+					try {
+						URI uri = new URI(filename);
+						loadFile = new File(uri);
+					} catch (URISyntaxException e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
 					try {
 						this.brissGUI.importNewPdfFile(loadFile);
 					} catch (PdfException e) {

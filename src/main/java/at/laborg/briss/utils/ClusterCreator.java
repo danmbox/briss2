@@ -21,20 +21,20 @@ package at.laborg.briss.utils;
 import java.io.File;
 import java.io.IOException;
 
-import at.laborg.briss.model.ClusterCollection;
-import at.laborg.briss.model.PageExcludes;
+import at.laborg.briss.model.ClusterDefinition;
 import at.laborg.briss.model.PageCluster;
+import at.laborg.briss.model.PageExcludes;
 
 import com.itextpdf.text.Rectangle;
 import com.itextpdf.text.pdf.PdfReader;
 
 public class ClusterCreator {
 
-	public static ClusterCollection clusterPages(File source,
+	public static ClusterDefinition clusterPages(File source,
 			PageExcludes pageExcludes) throws IOException {
 		PdfReader reader = new PdfReader(source.getAbsolutePath());
 
-		ClusterCollection clusters = new ClusterCollection();
+		ClusterDefinition clusters = new ClusterDefinition();
 
 		for (int page = 1; page <= reader.getNumberOfPages(); page++) {
 

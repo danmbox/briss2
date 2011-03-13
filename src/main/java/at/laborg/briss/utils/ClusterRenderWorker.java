@@ -9,16 +9,16 @@ import java.io.File;
 import org.jpedal.PdfDecoder;
 import org.jpedal.exception.PdfException;
 
-import at.laborg.briss.model.ClusterCollection;
+import at.laborg.briss.model.ClusterDefinition;
 import at.laborg.briss.model.PageCluster;
 
 public class ClusterRenderWorker extends Thread {
 
 	public int workerUnitCounter = 1;
 	private final File source;
-	private final ClusterCollection clusters;
+	private final ClusterDefinition clusters;
 
-	public ClusterRenderWorker(File source, ClusterCollection clusters) {
+	public ClusterRenderWorker(File source, ClusterDefinition clusters) {
 		super();
 		this.source = source;
 		this.clusters = clusters;
@@ -33,7 +33,7 @@ public class ClusterRenderWorker extends Thread {
 			e1.printStackTrace();
 		}
 
-		for (PageCluster cluster : clusters.getClusters()) {
+		for (PageCluster cluster : clusters.getClusterList()) {
 			for (Integer pageNumber : cluster.getPagesToMerge()) {
 				// TODO jpedal isn't able to render big images
 				// correctly, so let's check if the image is big an

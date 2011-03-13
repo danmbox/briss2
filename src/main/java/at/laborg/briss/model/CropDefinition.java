@@ -39,7 +39,7 @@ public class CropDefinition {
 	}
 
 	public static CropDefinition createCropDefinition(File source,
-			File destination, ClusterCollection clusters) throws IOException {
+			File destination, ClusterDefinition clusters) throws IOException {
 		if (source == null)
 			throw new IllegalArgumentException("Source must be provided");
 		if (!source.exists())
@@ -48,7 +48,7 @@ public class CropDefinition {
 
 		HashMap<Integer, List<Float[]>> pagesToCrops = new HashMap<Integer, List<Float[]>>();
 
-		for (PageCluster cluster : clusters.getClusters()) {
+		for (PageCluster cluster : clusters.getClusterList()) {
 			for (Integer pageNumber : cluster.getAllPages()) {
 				List<Float[]> cropRectangles = pagesToCrops.get(pageNumber);
 				if (cropRectangles == null) {

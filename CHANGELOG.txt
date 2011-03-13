@@ -21,9 +21,12 @@ CHANGELOG  - BRISS
 ################################################
 
 * 0.0.13 (To be released) 
+ * Better change visualization
  * Added possibility to reload pdfs for using other excluded pages while
  	retaining crop rectangles
- * Included Import/Export capability for comming batch mode
+ * Added drag&drop functionality
+ * Automatically clipping of crop rectangles to visible area
+ * Copy/paste of crop rectangles between clusters 	
  * Hopefully fixed bug where on Mac the crop rectangles couldn't be deleted
 
 * 0.0.12 (release 11.01.2010)

@@ -13,8 +13,9 @@ public class ClusterImageData {
 	private final static int MAX_IMAGE_RENDER_SIZE = 2000 * 2000;
 
 	private final boolean renderable;
-	private BufferedImage previewImage;
-	private WritableRaster raster = null;
+	private BufferedImage outputImage = null;
+	private int outputImageHeight = -1;
+	private int outputImageWidth = -1;
 	private short[][][] imgdata;
 	private int imageCnt = 0;
 	private final int totalImages;
@@ -31,26 +32,18 @@ public class ClusterImageData {
 	public void addImageToPreview(BufferedImage imageToAdd) {
 		if (!renderable)
 			return;
-		if (previewImage == null) {
-			int pageHeight = imageToAdd.getHeight() > MAX_PAGE_HEIGHT ? MAX_PAGE_HEIGHT
-					: imageToAdd.getHeight();
-			float scaleFactor = (float) pageHeight / imageToAdd.getHeight();
-			int pageWidth = (int) (imageToAdd.getWidth() * scaleFactor);
-
-			// create the first preview image
-			previewImage = new BufferedImage(pageWidth, pageHeight,
-					BufferedImage.TYPE_BYTE_GRAY);
-			previewImage.getGraphics().drawImage(
-					scaleImage(imageToAdd, pageWidth, pageHeight), 0, 0, null);
-			raster = previewImage.getRaster().createCompatibleWritableRaster();
-			imgdata = new short[previewImage.getWidth()][previewImage
-					.getHeight()][totalImages];
-
+		if (outputImageHeight == -1) {
+			initializeOutputImage(imageToAdd);
 		}
+		add(scaleImage(imageToAdd, outputImageWidth, outputImageHeight));
+	}
 
-		add(scaleImage(imageToAdd, previewImage.getWidth(), previewImage
-				.getHeight()));
-
+	private void initializeOutputImage(BufferedImage imageToAdd) {
+		outputImageHeight = imageToAdd.getHeight() > MAX_PAGE_HEIGHT ? MAX_PAGE_HEIGHT
+				: imageToAdd.getHeight();
+		float scaleFactor = (float) outputImageHeight / imageToAdd.getHeight();
+		outputImageWidth = (int) (imageToAdd.getWidth() * scaleFactor);
+		imgdata = new short[outputImageWidth][outputImageHeight][totalImages];
 	}
 
 	private void add(BufferedImage image) {
@@ -66,16 +59,50 @@ public class ClusterImageData {
 		imageCnt++;
 	}
 
+	public BufferedImage getPreviewImage() {
+
+		if (!renderable)
+			return getUnrenderableImage();
+		if (outputImage == null) {
+			outputImage = renderOutputImage();
+		}
+		return outputImage;
+	}
+
+	private BufferedImage renderOutputImage() {
+		BufferedImage outputImage = new BufferedImage(outputImageWidth,
+				outputImageHeight, BufferedImage.TYPE_BYTE_GRAY);
+		WritableRaster raster = outputImage.getRaster()
+				.createCompatibleWritableRaster();
+
+		if (totalImages == 1) {
+			for (int i = 0; i < outputImage.getWidth(); ++i) {
+				for (int j = 0; j < outputImage.getHeight(); ++j) {
+					raster.setSample(i, j, 0, imgdata[i][j][0]);
+				}
+			}
+			outputImage.setData(raster);
+			return outputImage;
+		}
+		int[][] sdvalue = calculateSdOfImages(imgdata, imageCnt);
+		for (int i = 0; i < outputImage.getWidth(); ++i) {
+			for (int j = 0; j < outputImage.getHeight(); ++j) {
+				raster.setSample(i, j, 0, sdvalue[i][j]);
+			}
+		}
+		outputImage.setData(raster);
+		return outputImage;
+	}
+
 	private static BufferedImage scaleImage(BufferedImage bsrc, int width,
 			int height) {
 
 		BufferedImage bdest = new BufferedImage(width, height,
 				BufferedImage.TYPE_BYTE_GRAY);
 		Graphics2D g = bdest.createGraphics();
-		AffineTransform at = AffineTransform.getScaleInstance((double) bdest
-				.getWidth()
-				/ bsrc.getWidth(), (double) bdest.getHeight()
-				/ bsrc.getHeight());
+		AffineTransform at = AffineTransform.getScaleInstance(
+				(double) bdest.getWidth() / bsrc.getWidth(),
+				(double) bdest.getHeight() / bsrc.getHeight());
 		g.drawRenderedImage(bsrc, at);
 		g.dispose();
 
@@ -106,30 +133,7 @@ public class ClusterImageData {
 		return bimage;
 	}
 
-	public BufferedImage getPreviewImage() {
-
-		if (!renderable)
-			return getUnrenderableImage();
-		if (totalImages == 1) {
-			for (int i = 0; i < previewImage.getWidth(); ++i) {
-				for (int j = 0; j < previewImage.getHeight(); ++j) {
-					raster.setSample(i, j, 0, imgdata[i][j][0]);
-				}
-			}
-			previewImage.setData(raster);
-			return previewImage;
-		}
-		int[][] sdvalue = calculateSdOfImages();
-		for (int i = 0; i < previewImage.getWidth(); ++i) {
-			for (int j = 0; j < previewImage.getHeight(); ++j) {
-				raster.setSample(i, j, 0, sdvalue[i][j]);
-			}
-		}
-		previewImage.setData(raster);
-		return previewImage;
-	}
-
-	private int[][] calculateSdOfImages() {
+	private static int[][] calculateSdOfImages(short[][][] imgdata, int imageCnt) {
 		int width = imgdata.length;
 		int height = imgdata[0].length;
 		int[][] sum = new int[width][height];

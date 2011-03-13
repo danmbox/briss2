@@ -44,7 +44,7 @@ import com.itextpdf.text.pdf.SimpleBookmark;
 public class DocumentCropper {
 
 	public static File crop(CropDefinition cropDefinition) throws IOException,
-			DocumentException {
+			DocumentException, IllegalArgumentException {
 
 		// check if everything is ready
 		if (!BrissFileHandling.checkValidStateAndCreate(cropDefinition
@@ -146,8 +146,9 @@ public class DocumentCropper {
 			range[0] = newPageNumber - 1;
 			range[1] = pdfMetaInformation.getSourcePageCount()
 					+ (newPageNumber - sourcePageNumber);
-			SimpleBookmark.shiftPageNumbers(pdfMetaInformation
-					.getSourceBookmarks(), rectangleList.size() - 1, range);
+			SimpleBookmark.shiftPageNumbers(
+					pdfMetaInformation.getSourceBookmarks(),
+					rectangleList.size() - 1, range);
 		}
 		stamper.setOutlines(pdfMetaInformation.getSourceBookmarks());
 		stamper.close();

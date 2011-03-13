@@ -18,12 +18,67 @@
 package at.laborg.briss;
 
 import java.io.File;
+import java.io.IOException;
+
+import at.laborg.briss.model.ClusterDefinition;
+import at.laborg.briss.model.CropDefinition;
+import at.laborg.briss.model.CropFinder;
+import at.laborg.briss.model.PageCluster;
+import at.laborg.briss.utils.BrissFileHandling;
+import at.laborg.briss.utils.ClusterCreator;
+import at.laborg.briss.utils.ClusterRenderWorker;
+import at.laborg.briss.utils.DocumentCropper;
+
+import com.itextpdf.text.DocumentException;
 
 public class BrissCMD {
 
 	public static void autoCrop(String[] args) {
 
-		CommandValues.parseToJob(args);
+		CommandValues workDescription = CommandValues
+				.parseToWorkDescription(args);
+		ClusterDefinition clusterDefinition = null;
+		try {
+			clusterDefinition = ClusterCreator.clusterPages(
+					workDescription.getSourceFile(), null);
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		ClusterRenderWorker cRW = new ClusterRenderWorker(
+				workDescription.getSourceFile(), clusterDefinition);
+		cRW.start();
+
+		System.out.print("Clustering.");
+		while (cRW.isAlive()) {
+			System.out.print(".");
+			try {
+				Thread.sleep(500);
+			} catch (InterruptedException e) {
+			}
+		}
+		System.out.println("finished!");
+		try {
+
+			for (PageCluster cluster : clusterDefinition.getClusterList()) {
+				Float[] auto = CropFinder.getAutoCropFloats(cluster
+						.getImageData().getPreviewImage());
+				cluster.addRatios(auto);
+			}
+			CropDefinition cropDefintion = CropDefinition.createCropDefinition(
+					workDescription.getSourceFile(),
+					workDescription.getDestFile(), clusterDefinition);
+			DocumentCropper.crop(cropDefintion);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IllegalArgumentException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (DocumentException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 
 		// try {
 		// cropJob = CropManager.createCropJob(pCV.sourceFile);
@@ -139,53 +194,37 @@ public class BrissCMD {
 
 		private final static String SOURCE_FILE_CMD = "-s";
 		private final static String DEST_FILE_CMD = "-d";
-		private final static String MERGE_PAGE_CMD = "-p";
-		private final static String HORIZ_DIV_CMD = "-h";
-		private final static String VERT_DIV_CMD = "-v";
-		private final static String OVERWRITE = "-o";
 
 		private File sourceFile;
+		private File destFile;
 
-		static CommandValues parseToJob(String[] args) {
-			CommandValues job = new CommandValues();
+		static CommandValues parseToWorkDescription(String[] args) {
+			CommandValues commandValues = new CommandValues();
 			int i = 0;
 			while (i < args.length) {
 				if (args[i].trim().equalsIgnoreCase(SOURCE_FILE_CMD)) {
 					if (i < (args.length - 1)) {
-						job.setSourceFile(new File(args[i + 1]));
-					}
-				} else if (args[i].trim().equalsIgnoreCase(MERGE_PAGE_CMD)) {
-					if (i < (args.length - 1)) {
-						job.setPageMergeNumber(Integer.valueOf(args[i + 1]));
-					}
-				} else if (args[i].trim().equalsIgnoreCase(HORIZ_DIV_CMD)) {
-					if (i < (args.length - 1)) {
-						job.setHorizDivision(Integer.valueOf(args[i + 1]));
-					}
-				} else if (args[i].trim().equalsIgnoreCase(VERT_DIV_CMD)) {
-					if (i < (args.length - 1)) {
-						job.setVertDivision(Integer.valueOf(args[i + 1]));
+						commandValues.setSourceFile(new File(args[i + 1]));
 					}
 				} else if (args[i].trim().equalsIgnoreCase(DEST_FILE_CMD)) {
 					if (i < (args.length - 1)) {
-						job.setDestFile(new File(args[i + 1]));
+						commandValues.setDestFile(new File(args[i + 1]));
 					}
-				} else if (args[i].trim().equalsIgnoreCase(OVERWRITE)) {
-					job.setOverwrite(true);
 				}
 				i++;
 			}
 
-			if (!isValidJob(job)) {
+			if (!isValidJob(commandValues)) {
 				System.exit(-1);
 			}
-			return job;
+
+			return commandValues;
 		}
 
 		private static boolean isValidJob(CommandValues job) {
 			if (job.getSourceFile() == null) {
 				System.out
-						.println("No File submitted: try \"java -jar Briss.0.0.13 -s filename.pdf\"");
+						.println("No source file submitted: try \"java -jar Briss.0.0.13 -s filename.pdf\"");
 				return false;
 			}
 			if (!job.getSourceFile().exists()) {
@@ -193,6 +232,25 @@ public class BrissCMD {
 						+ " doesn't exist");
 				return false;
 			}
+			if (job.getDestFile() == null) {
+				File recommendedDest = BrissFileHandling
+						.getRecommendedDestination(job.getSourceFile());
+				job.setDestFile(recommendedDest);
+				System.out
+						.println("Since no destination was provided destination will be set to  : "
+								+ recommendedDest.getAbsolutePath());
+			}
+			try {
+				BrissFileHandling.checkValidStateAndCreate(job.getDestFile());
+			} catch (IllegalArgumentException e) {
+				System.out.println("Destination file couldn't be created!");
+				return false;
+			} catch (IOException e) {
+				System.out.println("IO Error while creating destination file."
+						+ e.getStackTrace());
+				return false;
+			}
+
 			return true;
 		}
 
@@ -204,19 +262,12 @@ public class BrissCMD {
 			this.sourceFile = sourceFile;
 		}
 
-		public void setOverwrite(boolean overwrite) {
+		public File getDestFile() {
+			return destFile;
 		}
 
 		public void setDestFile(File destFile) {
-		}
-
-		public void setPageMergeNumber(int pageMergeNumber) {
-		}
-
-		public void setHorizDivision(int horizDivision) {
-		}
-
-		public void setVertDivision(int vertDivision) {
+			this.destFile = destFile;
 		}
 
 	}

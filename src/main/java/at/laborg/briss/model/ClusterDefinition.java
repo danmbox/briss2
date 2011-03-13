@@ -20,7 +20,7 @@ package at.laborg.briss.model;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ClusterCollection {
+public class ClusterDefinition {
 
 	private final List<PageCluster> clusters = new ArrayList<PageCluster>();
 
@@ -32,7 +32,7 @@ public class ClusterCollection {
 		return null;
 	}
 
-	public List<PageCluster> getClusters() {
+	public List<PageCluster> getClusterList() {
 		return clusters;
 	}
 
