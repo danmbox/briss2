@@ -24,17 +24,13 @@ import java.net.URI;
 import java.net.URISyntaxException;
 
 public class DesktopHelper {
-	public static void openFileWithDesktopApp(File cropDestinationFile) {
+	public static void openFileWithDesktopApp(File cropDestinationFile) throws IOException {
 		if (Desktop.isDesktopSupported()) {
-			try {
 				Desktop.getDesktop().open(cropDestinationFile);
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
 		}
 	}
 
-	public static void openDonationLink(String uri) {
+	public static void openDonationLink(String uri) throws IOException {
 		if (Desktop.isDesktopSupported()) {
 			Desktop desktop = Desktop.getDesktop();
 			URI donationURI;
@@ -42,7 +38,6 @@ public class DesktopHelper {
 				donationURI = new URI(uri);
 				desktop.browse(donationURI);
 			} catch (URISyntaxException e) {
-			} catch (IOException e) {
 			}
 		}
 	}

@@ -530,6 +530,9 @@ public class MergedPanel extends JPanel {
 
 		@Override
 		public void mouseReleased(MouseEvent mE) {
+			if (mE.isPopupTrigger()) {
+				showPopUpMenu(mE);
+			}
 			clipCropsToVisibleArea();
 			removeToSmallCrops();
 			updateClusterRatios(crops);

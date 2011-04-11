@@ -306,7 +306,13 @@ public class BrissGUI extends JFrame implements ActionListener,
 	@Override
 	public void actionPerformed(ActionEvent action) {
 		if (action.getActionCommand().equals(DONATE)) {
-			DesktopHelper.openDonationLink(DONATION_URI);
+			try {
+				DesktopHelper.openDonationLink(DONATION_URI);
+			} catch (IOException e) {
+				JOptionPane.showMessageDialog(this, e.getMessage(),
+						"Error occured while loading",
+						JOptionPane.ERROR_MESSAGE);
+			}
 		} else if (action.getActionCommand().equals(EXIT)) {
 			System.exit(0);
 		} else if (action.getActionCommand().equals(HELP)) {
@@ -323,11 +329,13 @@ public class BrissGUI extends JFrame implements ActionListener,
 				reloadWithOtherExcludes();
 				setTitle("BRISS - " + workingSet.getSourceFile().getName());
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				JOptionPane.showMessageDialog(this, e.getMessage(),
+						"Error occured while reloading",
+						JOptionPane.ERROR_MESSAGE);
 			} catch (PdfException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				JOptionPane.showMessageDialog(this, e.getMessage(),
+						"Error occured while reloading",
+						JOptionPane.ERROR_MESSAGE);
 			}
 		} else if (action.getActionCommand().equals(LOAD)) {
 			File inputFile = getNewFileToCrop();
@@ -337,11 +345,13 @@ public class BrissGUI extends JFrame implements ActionListener,
 				importNewPdfFile(inputFile);
 				setTitle("BRISS - " + inputFile.getName());
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				JOptionPane.showMessageDialog(this, e.getMessage(),
+						"Error occured while loading",
+						JOptionPane.ERROR_MESSAGE);
 			} catch (PdfException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				JOptionPane.showMessageDialog(this, e.getMessage(),
+						"Error occured while loading",
+						JOptionPane.ERROR_MESSAGE);
 			}
 
 		} else if (action.getActionCommand().equals(CROP)) {
