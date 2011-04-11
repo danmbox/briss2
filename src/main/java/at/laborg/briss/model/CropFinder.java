@@ -5,10 +5,10 @@ import java.awt.image.WritableRaster;
 
 public class CropFinder {
 
-	private static final double RATIO_LOOK_AHEAD_SATISFY = 0.8;
+	private static final double RATIO_LOOK_AHEAD_SATISFY = 0.85;
 	private static final int LOOK_AHEAD_PIXEL_NR = 30;
 	private static final int SD_CALC_SIZE_NR = 5;
-	private static final float SD_THRESHOLD_TO_BE_COUNTED = 0.3f;
+	private static final float SD_THRESHOLD_TO_BE_COUNTED = 0.2f;
 
 	public static final int X_AXIS = 0;
 	public static final int Y_AXIS = 1;

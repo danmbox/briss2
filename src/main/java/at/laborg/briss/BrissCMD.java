@@ -20,6 +20,7 @@ package at.laborg.briss;
 import java.io.File;
 import java.io.IOException;
 
+import at.laborg.briss.exception.CropException;
 import at.laborg.briss.model.ClusterDefinition;
 import at.laborg.briss.model.CropDefinition;
 import at.laborg.briss.model.CropFinder;
@@ -37,19 +38,29 @@ public class BrissCMD {
 
 		CommandValues workDescription = CommandValues
 				.parseToWorkDescription(args);
+
+		if (!CommandValues.isValidJob(workDescription))
+			return;
+
+		System.out
+				.println("Clustering PDF: " + workDescription.getSourceFile());
 		ClusterDefinition clusterDefinition = null;
 		try {
 			clusterDefinition = ClusterCreator.clusterPages(
 					workDescription.getSourceFile(), null);
 		} catch (IOException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
+			System.out.println("Error occured while clustering.");
+			e1.printStackTrace(System.out);
+			return;
 		}
+		System.out.println("Created "
+				+ clusterDefinition.getClusterList().size() + " clusters.");
+
 		ClusterRenderWorker cRW = new ClusterRenderWorker(
 				workDescription.getSourceFile(), clusterDefinition);
 		cRW.start();
 
-		System.out.print("Clustering.");
+		System.out.print("Starting to render clusters.");
 		while (cRW.isAlive()) {
 			System.out.print(".");
 			try {
@@ -58,8 +69,8 @@ public class BrissCMD {
 			}
 		}
 		System.out.println("finished!");
+		System.out.println("Calculating crop rectangles.");
 		try {
-
 			for (PageCluster cluster : clusterDefinition.getClusterList()) {
 				Float[] auto = CropFinder.getAutoCropFloats(cluster
 						.getImageData().getPreviewImage());
@@ -68,127 +79,20 @@ public class BrissCMD {
 			CropDefinition cropDefintion = CropDefinition.createCropDefinition(
 					workDescription.getSourceFile(),
 					workDescription.getDestFile(), clusterDefinition);
+			System.out.println("Starting to crop files.");
 			DocumentCropper.crop(cropDefintion);
+			System.out.println("Cropping succesful. Cropped to:"
+					+ workDescription.getDestFile().getAbsolutePath());
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IllegalArgumentException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (DocumentException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
+		} catch (CropException e) {
+			System.out.println("Error while cropping:" + e.getMessage());
 		}
-
-		// try {
-		// cropJob = CropManager.createCropJob(pCV.sourceFile);
-		// } catch (IOException e) {
-		// TODO Auto-generated catch block
-		// e.printStackTrace();
-		// }
-		// clusterJob = workflowClusterAndRender(clusterJob, pCV);
-
-		// workflowRectFinding(clusterJob);
-
-		// workflowCrop(clusterJob, cropJob, pCV);
-
 	}
-
-	// private static ClusterJob workflowClusterAndRender(ClusterJob clusterJob,
-	// CommandValues pCV) {
-	// System.out.println("Starting workflow: Cluster and Render (Source: "
-	// + pCV.getSourceFile().getName() + ").");
-	//
-	// try {
-	// clusterJob = ClusterManager.createClusterJob(pCV.getSourceFile());
-	// ClusterManager.clusterPages(clusterJob);
-	// } catch (IOException e1) {
-	// // TODO Auto-generated catch block
-	// e1.printStackTrace();
-	// } catch (PdfException e) {
-	// // TODO Auto-generated catch block
-	// e.printStackTrace();
-	// }
-	//
-	// ClusterManager.ClusterRenderWorker wT = new
-	// ClusterManager.ClusterRenderWorker(
-	// clusterJob);
-	// wT.start();
-	//
-	// System.out.print("Clustering.");
-	// while (wT.isAlive()) {
-	// System.out.print(".");
-	// try {
-	// Thread.sleep(500);
-	// } catch (InterruptedException e) {
-	// }
-	// }
-	// System.out.println("finished!");
-	//
-	// return clusterJob;
-	// }
-	//
-	// private static void workflowRectFinding(ClusterJob clusterJob) {
-	// System.out
-	// .println("Starting workflow: Finding crop rectangle (Number of cluster: "
-	// + clusterJob.getClusterCollection().getAsList().size() + ").");
-	// // for (SingleCluster cluster : clusterJob.getClusters().getAsList()) {
-	// // Float[] ratios = calcCropAutomatic(cluster.getPreviewImage());
-	// // cluster.addRatios(ratios);
-	// // }
-	// }
-	//
-	// private static void workflowCrop(ClusterJob clusterJob, CropDocument
-	// cropDoc,
-	// CommandValues pCV) {
-	//
-	// // cropping start
-	// System.out.println("Starting workflow: Crop the file (Destination: "
-	// + pCV.getDestFile().getName() + ").");
-	//
-	// try {
-	//
-	// // file exists and can't be overwritten
-	// if (pCV.getDestFile().exists() && !pCV.isOverwrite()) {
-	// System.out
-	// .println("File destination: "
-	// + pCV.getDestFile().getName()
-	// +
-	// " already exists and overwritting parameter (\"-o\") wasn't supplied. Exiting...");
-	// return;
-	// }
-	//
-	// // file exists and should be overwritten
-	// if (pCV.getDestFile().exists() && pCV.isOverwrite()) {
-	// if (pCV.getDestFile().delete()) {
-	// pCV.getDestFile().createNewFile();
-	// } else {
-	// System.out.println("File: " + pCV.getDestFile().getName()
-	// + " couldn't be deleted!");
-	// return;
-	// }
-	// }
-	//
-	// // file doesn't exist, create it
-	// if (!pCV.getDestFile().createNewFile()) {
-	// System.out.println("File: " + pCV.getDestFile().getName()
-	// + " couldn't be created!");
-	// }
-	//
-	// // cropJob.setAndCreateDestinationFile(pCV.getDestFile());
-	// // cropJob.setClusterCollection(clusterJob.getClusterCollection());
-	//
-	// // CropManager.crop(cropJob);
-	//
-	// System.out.println("Finished successfully !");
-	// } catch (IOException e) {
-	// // TODO Auto-generated catch block
-	// e.printStackTrace();
-	// // } catch (DocumentException e) {
-	// // TODO Auto-generated catch block
-	// // e.printStackTrace();
-	// }
-	// }
 
 	private static class CommandValues {
 
@@ -212,10 +116,6 @@ public class BrissCMD {
 					}
 				}
 				i++;
-			}
-
-			if (!isValidJob(commandValues)) {
-				System.exit(-1);
 			}
 
 			return commandValues;

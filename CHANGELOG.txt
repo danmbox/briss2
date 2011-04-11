@@ -20,8 +20,16 @@
 CHANGELOG  - BRISS  
 ################################################
 
-* 0.0.13 (To be released) 
- * Better change visualization
+* 0.0.13 (11.04.2011) 
+ * Added automatically crop rectangle calculation
+ * Updated libraries (itext, jpedal) fixing several problems
+ * JP2000 support, finally!
+ * Added hotcorners(upper left and lower right) to resize existing crop rectangles
+ * Providing a single file as argument now directly loads it on startup of Briss 
+ 	(can be handy if you have a shortcut defined like "open with")
+ * Command line cropping (at the moment just with automatic crop algorithm,
+ 	see Readme for instructions)
+ * Better visualization of merged images
  * Added possibility to reload pdfs for using other excluded pages while
  	retaining crop rectangles
  * Added drag&drop functionality

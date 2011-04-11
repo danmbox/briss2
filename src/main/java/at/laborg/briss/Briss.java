@@ -20,11 +20,15 @@ package at.laborg.briss;
 public class Briss {
 
 	public static void main(String args[]) {
+
+		// this needs to be set in order to cope with jp2000 images
+		System.setProperty("org.jpedal.jai", "true");
+
 		// check if args are present, if so try to start commandline briss
-		if (args.length > 0) {
+		if (args.length > 1) {
 			BrissCMD.autoCrop(args);
 		} else {
-			new BrissGUI();
+			new BrissGUI(args);
 		}
 	}
 }

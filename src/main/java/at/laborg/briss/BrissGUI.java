@@ -20,6 +20,7 @@ package at.laborg.briss;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Dialog;
 import java.awt.Dimension;
@@ -27,6 +28,8 @@ import java.awt.FlowLayout;
 import java.awt.Frame;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ComponentEvent;
+import java.awt.event.ComponentListener;
 import java.awt.event.KeyEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
@@ -55,6 +58,7 @@ import javax.swing.UnsupportedLookAndFeelException;
 
 import org.jpedal.exception.PdfException;
 
+import at.laborg.briss.exception.CropException;
 import at.laborg.briss.gui.HelpDialog;
 import at.laborg.briss.gui.MergedPanel;
 import at.laborg.briss.gui.WrapLayout;
@@ -80,7 +84,7 @@ import com.itextpdf.text.DocumentException;
  */
 @SuppressWarnings("serial")
 public class BrissGUI extends JFrame implements ActionListener,
-		PropertyChangeListener {
+		PropertyChangeListener, ComponentListener {
 
 	private static final String EXCLUDE_PAGES_DESCRIPTION = "Enter pages to be excluded from merging (e.g.: \"1-4;6;9\").\n"
 			+ "First page has number: 1\n"
@@ -110,9 +114,29 @@ public class BrissGUI extends JFrame implements ActionListener,
 
 	private WorkingSet workingSet;
 
-	public BrissGUI() {
+	public BrissGUI(String[] args) {
 		super("BRISS - BRight Snippet Sire");
 		init();
+		tryToLoadFileFromArgument(args);
+	}
+
+	private void tryToLoadFileFromArgument(String[] args) {
+		if (args.length == 0)
+			return;
+		File fileArg = new File(args[0]);
+		if (fileArg.exists()
+				&& fileArg.getAbsolutePath().trim().endsWith(".pdf")) {
+			try {
+				importNewPdfFile(fileArg);
+			} catch (IOException e) {
+				JOptionPane.showMessageDialog(this, e.getMessage(),
+						"Briss error", JOptionPane.ERROR_MESSAGE);
+			} catch (PdfException e) {
+				JOptionPane.showMessageDialog(this, e.getMessage(),
+						"Briss error", JOptionPane.ERROR_MESSAGE);
+			}
+		}
+
 	}
 
 	private void init() {
@@ -128,7 +152,9 @@ public class BrissGUI extends JFrame implements ActionListener,
 		// Create the menu bar.
 		menuBar = new JMenuBar();
 		JMenu fileMenu = new JMenu("File");
+		fileMenu.setMnemonic(KeyEvent.VK_F);
 		JMenu actionMenu = new JMenu("Action");
+		actionMenu.setMnemonic(KeyEvent.VK_A);
 
 		menuBar.add(fileMenu);
 		menuBar.add(actionMenu);
@@ -182,9 +208,10 @@ public class BrissGUI extends JFrame implements ActionListener,
 		setJMenuBar(menuBar);
 
 		previewPanel = new JPanel();
-		previewPanel.setLayout(new WrapLayout(FlowLayout.LEFT));
+		previewPanel.setLayout(new WrapLayout(FlowLayout.LEFT, 4, 4));
 		previewPanel.setEnabled(true);
 		previewPanel.setBackground(Color.BLACK);
+		previewPanel.addComponentListener(this);
 
 		progressBar = new JProgressBar(0, 100);
 		progressBar.setStringPainted(true);
@@ -326,32 +353,47 @@ public class BrissGUI extends JFrame implements ActionListener,
 					DesktopHelper.openFileWithDesktopApp(result);
 					lastOpenDir = result.getParentFile();
 				}
-				setIdleState("");
+
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				JOptionPane.showMessageDialog(this, e.getMessage(),
+						"Error occured while cropping",
+						JOptionPane.ERROR_MESSAGE);
 			} catch (DocumentException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				JOptionPane.showMessageDialog(this, e.getMessage(),
+						"Error occured while cropping",
+						JOptionPane.ERROR_MESSAGE);
+			} catch (CropException e) {
+				JOptionPane.showMessageDialog(this, e.getMessage(),
+						"Error occured while cropping",
+						JOptionPane.ERROR_MESSAGE);
+			} finally {
+				setIdleState("");
 			}
 		} else if (action.getActionCommand().equals(PREVIEW)) {
 			try {
 				setWorkingState("Creating and showing preview...");
 				File result = createAndExecuteCropJobForPreview();
 				DesktopHelper.openFileWithDesktopApp(result);
-				setIdleState("");
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				JOptionPane.showMessageDialog(this, e.getMessage(),
+						"Error occured while cropping",
+						JOptionPane.ERROR_MESSAGE);
 			} catch (DocumentException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				JOptionPane.showMessageDialog(this, e.getMessage(),
+						"Error occured while cropping",
+						JOptionPane.ERROR_MESSAGE);
+			} catch (CropException e) {
+				JOptionPane.showMessageDialog(this, e.getMessage(),
+						"Error occured while cropping",
+						JOptionPane.ERROR_MESSAGE);
+			} finally {
+				setIdleState("");
 			}
 		}
 	}
 
 	private File createAndExecuteCropJobForPreview() throws IOException,
-			DocumentException {
+			DocumentException, CropException {
 		File tmpCropFileDestination = File.createTempFile("briss", ".pdf");
 		CropDefinition cropDefinition = CropDefinition.createCropDefinition(
 				workingSet.getSourceFile(), tmpCropFileDestination,
@@ -361,7 +403,7 @@ public class BrissGUI extends JFrame implements ActionListener,
 	}
 
 	private File createAndExecuteCropJob(File source) throws IOException,
-			DocumentException {
+			DocumentException, CropException {
 		File cropDestinationFile = getCropFileDestination(workingSet
 				.getSourceFile());
 		if (cropDestinationFile == null)
@@ -448,7 +490,6 @@ public class BrissGUI extends JFrame implements ActionListener,
 
 	private void setStateAfterClusteringFinished(ClusterDefinition newClusters,
 			PageExcludes newPageExcludes, File newSource) {
-
 		updateWorkingSet(newClusters, newPageExcludes, newSource);
 
 		previewPanel.removeAll();
@@ -469,6 +510,8 @@ public class BrissGUI extends JFrame implements ActionListener,
 		setIdleState("");
 		pack();
 		setExtendedState(Frame.MAXIMIZED_BOTH);
+		previewPanel.repaint();
+		repaint();
 	}
 
 	private void updateWorkingSet(ClusterDefinition newClusters,
@@ -546,5 +589,25 @@ public class BrissGUI extends JFrame implements ActionListener,
 
 			return null;
 		}
+	}
+
+	@Override
+	public void componentResized(ComponentEvent e) {
+		previewPanel.revalidate();
+		for (Component component : previewPanel.getComponents()) {
+			component.repaint();
+		}
+	}
+
+	@Override
+	public void componentMoved(ComponentEvent e) {
+	}
+
+	@Override
+	public void componentShown(ComponentEvent e) {
+	}
+
+	@Override
+	public void componentHidden(ComponentEvent e) {
 	}
 }

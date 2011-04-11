@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import at.laborg.briss.exception.CropException;
 import at.laborg.briss.model.CropDefinition;
 
 import com.itextpdf.text.Document;
@@ -44,12 +45,16 @@ import com.itextpdf.text.pdf.SimpleBookmark;
 public class DocumentCropper {
 
 	public static File crop(CropDefinition cropDefinition) throws IOException,
-			DocumentException, IllegalArgumentException {
+			DocumentException, CropException {
 
 		// check if everything is ready
 		if (!BrissFileHandling.checkValidStateAndCreate(cropDefinition
 				.getDestinationFile()))
 			throw new IOException("Destination file not valid");
+
+		// check if file is encrypted and needs a password
+		if (isPasswordRequired(cropDefinition.getSourceFile()))
+			throw new CropException("Password required");
 
 		// read out necessary meta information
 		PdfMetaInformation pdfMetaInformation = new PdfMetaInformation(
@@ -70,6 +75,7 @@ public class DocumentCropper {
 
 		PdfReader reader = new PdfReader(cropDefinition.getSourceFile()
 				.getAbsolutePath());
+
 		Document document = new Document();
 
 		File resultFile = File.createTempFile("cropped", ".pdf");
@@ -162,6 +168,13 @@ public class DocumentCropper {
 		scaleBoxArray.add(new PdfNumber(scaledBox.getRight()));
 		scaleBoxArray.add(new PdfNumber(scaledBox.getTop()));
 		return scaleBoxArray;
+	}
+
+	private static boolean isPasswordRequired(File file) throws IOException {
+		PdfReader reader = new PdfReader(file.getAbsolutePath());
+		boolean isEncrypted = reader.isEncrypted();
+		reader.close();
+		return isEncrypted;
 	}
 
 	private static class PdfMetaInformation {

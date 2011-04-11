@@ -1,12 +1,11 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-	<!--
-		 mvn install:install-file
-		-DgroupId=jpedal -DartifactId=jpedal -Dpackaging=jar -Dversion=4.40b77
-		-Dfile=/home/gerhard/Downloads/jpedal_lgpl.jar
-
-	-->
+	<!-- mvn install:install-file -DgroupId=jpedal -DartifactId=jpedal -Dpackaging=jar 
+		-Dversion=4.47b53 -Dfile=/home/gerhard/Downloads/jpedal_lgpl.jar 
+		
+		mvn install:install-file 
+		-DgroupId=jai -DartifactId=jai-imageio -Dpackaging=jar -Dversion=1.0 -Dfile=/home/gerhard/Downloads/jai_imageio_idrsolutionsBuild.jar -->
 	<groupId>at.laborg</groupId>
 	<artifactId>briss</artifactId>
 	<version>0.0.13</version>
@@ -66,7 +65,7 @@
 
 			<groupId>com.itextpdf</groupId>
 			<artifactId>itextpdf</artifactId>
-			<version>5.0.5</version>
+			<version>5.0.6</version>
 			<scope>runtime</scope>
 
 		</dependency>
@@ -80,7 +79,13 @@
 		<dependency>
 			<groupId>jpedal</groupId>
 			<artifactId>jpedal</artifactId>
-			<version>4.46b42</version>
+			<version>4.47b53</version>
+			<scope>runtime</scope>
+		</dependency>
+				<dependency>
+			<groupId>jai</groupId>
+			<artifactId>jai-imageio</artifactId>
+			<version>1.0</version>
 			<scope>runtime</scope>
 		</dependency>
 	</dependencies>

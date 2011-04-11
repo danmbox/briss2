@@ -86,10 +86,10 @@ public class MergedPanel extends JPanel {
 		super();
 		this.cluster = cluster;
 		this.img = cluster.getImageData().getPreviewImage();
-		// TODO intermediate code!
 		Float[] autoRatios = CropFinder.getAutoCropFloats(img);
 		cluster.addRatios(autoRatios);
 		setPreferredSize(new Dimension(img.getWidth(), img.getHeight()));
+		setSize(new Dimension(img.getWidth(), img.getHeight()));
 		if (cluster.getImageData().isRenderable()) {
 			MergedPanelMouseAdapter mouseAdapter = new MergedPanelMouseAdapter();
 			addMouseMotionListener(mouseAdapter);

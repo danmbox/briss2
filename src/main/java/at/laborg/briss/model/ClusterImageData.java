@@ -65,6 +65,7 @@ public class ClusterImageData {
 			return getUnrenderableImage();
 		if (outputImage == null) {
 			outputImage = renderOutputImage();
+			imgdata = null;
 		}
 		return outputImage;
 	}

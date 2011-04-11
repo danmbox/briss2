@@ -44,7 +44,29 @@ Starting the application
 ########################
 You can run the application by executing following command in terminal:
 
-java -jar briss-0.0.12.jar
+java -jar briss-0.0.13.jar
+or
+java -jar briss-0.0.13.jar cropthis.pdf
+
+(The second line comes in handy if you want shortlinks for pdf editing) 
+
+
+########################
+Commandline
+########################
+
+If you prefer command line and trust the basic automatic detection algorithm
+use it this way (can be batched!):
+
+java -jar briss-0.0.13.jar -s [SOURCEFILE] [-d [DESTINATIONFILE]]
+
+Example:
+java -jar briss-0.0.13.jar -s dogeatdog.pdf -d dogcrop.pdf
+java -jar briss-0.0.13.jar -s dogeatdog.pdf 
+
+the second line will create the cropped pdf into dogeatdog_cropped.pdf
+
+
 
 ########################
 Instructions
@@ -59,7 +81,12 @@ Instructions
  * [OPTIONAL] Set width/height to maximum: Select the crop rectangles by holding
     down CTRL + left click into rectangle to select. All crop rectangles will be
     resized to the biggest one, either on width or height.
-3) Start the cropping by pressing "Crop" and specify the destination of the cropped pdf.
+3) Start the cropping by pressing "Crop" or preview and specify the destination of the cropped pdf.
+
+[OPTIONAL FEATURES]
+* Select a Rectangle with ctrl + mouse click. Then copy (ctrl-c) and paste it into another cluster.
+* Use hotcorners to make a crop rectangle smaller or bigger
+
 
 ########################
 Problems

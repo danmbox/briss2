@@ -2,7 +2,8 @@
 <h3>Typical work flow</h3>
 <ol>
 	<li>Load a PDF by clicking <span style="font-family: monospace">File-&gt;Load</span>
-	and choose the pdf to which should be cropped.<i>(Optional: Set the pages to exclude from merging)</i></li>
+	and choose the pdf to which should be cropped.<i>(Optional: Set the
+	pages to exclude from merging)</i></li>
 	<li>Now the PDF is loaded and you are shown the merged pages. A
 	page is merged to a cluster if it has the same size and is either even
 	or odd.</li>
@@ -21,10 +22,27 @@
 <h3>Handle crop rectangles</h3>
 <ul>
 	<li>If you want to <b>delete</b> a crop rectangle move the mouse
-	pointer into the rectangle and press the right mouse button.</li>
+	pointer into the rectangle, press the right mouse button and click
+	"Delete rectangle"</li>
 	<li>You can <b>move</b> crop rectangles around by clicking and
 	holding the left mousebutton in a crop rectangle!</li>
+	<li>You can copy and paste a rectangle between different page
+	clusters. Therefore you must select some crop rectangles. Afterwards
+	press ctrl+c, then click into the page cluster where you want to paste
+	the selected crop rectangles and paste them by pressing ctrl+v.</li>
 </ul>
+<h3>Command line usage</h3>
+<p>If you prefer command line and trust the basic automatic detection algorithm
+use it this way (can be batched!):<br/>
+<pre>
+java -jar briss-0.0.13.jar -s [SOURCEFILE] [-d [DESTINATIONFILE]]
+</pre>
+Example:
+<pre>
+java -jar briss-0.0.13.jar -s dogeatdog.pdf -d dogcrop.pdf
+java -jar briss-0.0.13.jar -s dogeatdog.pdf 
+</pre>
+<p>the second line will crop the file into <pre>dogeatdog_cropped.pdf</pre></p>
 <h3>Resize crop rectangles to maxium width/height</h3>
 <p>Sometimes it's necessary to make crops rectangles between merged
 clusters the same width/height. Therefore just
