@@ -1,6 +1,6 @@
 // $Id$
 /**
- * Copyright 2010 Gerhard Aigner
+ * Copyright 2010, 2011 Gerhard Aigner, Rastislav Wartiak
  * 
  * This file is part of BRISS.
  * 
@@ -47,6 +47,7 @@ import javax.swing.SwingUtilities;
 
 import at.laborg.briss.model.CropFinder;
 import at.laborg.briss.model.PageCluster;
+import at.laborg.briss.BrissGUI;
 
 @SuppressWarnings("serial")
 public class MergedPanel extends JPanel {
@@ -60,7 +61,7 @@ public class MergedPanel extends JPanel {
 	private static Point relativeHotCornerGrabDistance;
 	private static ActionState actionState = ActionState.NOTHING;
 
-	private final static int SELECT_BORDER_WIDTH = 5;
+	private final static int SELECT_BORDER_WIDTH = 1;
 	private final static Font BASE_FONT = new Font(null, Font.PLAIN, 10);
 	private final static Composite SMOOTH_NORMAL = AlphaComposite.getInstance(
 			AlphaComposite.SRC_OVER, .2f);
@@ -81,9 +82,12 @@ public class MergedPanel extends JPanel {
 	private enum ActionState {
 		NOTHING, DRAWING_NEW_CROP, RESIZING_HOTCORNER_UL, RESIZING_HOTCORNER_LR, MOVE_CROP
 	}
+        
+        private final BrissGUI briss;
 
-	public MergedPanel(PageCluster cluster) {
+	public MergedPanel(PageCluster cluster, BrissGUI briss) {
 		super();
+                this.briss = briss;
 		this.cluster = cluster;
 		this.img = cluster.getImageData().getPreviewImage();
 		Float[] autoRatios = CropFinder.getAutoCropFloats(img);
@@ -181,10 +185,11 @@ public class MergedPanel extends JPanel {
 				+ SELECT_BORDER_WIDTH / 2, crop.width - SELECT_BORDER_WIDTH,
 				crop.height - SELECT_BORDER_WIDTH);
 
-		g2.setFont(scaleFont("Selected", crop));
+                String size = Integer.toString(crop.width) + "x" + Integer.toString(crop.height);
+		g2.setFont(scaleFont(size, crop));
 		g2.setColor(Color.YELLOW);
 		g2.setComposite(SMOOTH_SELECT);
-		g2.drawString("Selected", crop.x + SELECT_BORDER_WIDTH, crop.y
+		g2.drawString(size, crop.x + SELECT_BORDER_WIDTH, crop.y
 				+ crop.height - SELECT_BORDER_WIDTH);
 	}
 
@@ -223,6 +228,20 @@ public class MergedPanel extends JPanel {
 		return max;
 	}
 
+	public Dimension getLargestRect() {
+		int maxW = -1;
+		int maxH = -1;
+		for (DrawableCropRect crop : crops) {
+                        if (crop.width > maxW) {
+                                maxW = crop.width;
+                        }
+                        if (crop.height > maxH) {
+                                maxH = crop.height;
+                        }
+		}
+		return new Dimension(maxW, maxH);
+	}
+
 	public void setSelCropWidth(int width) {
 		for (DrawableCropRect crop : crops) {
 			if (crop.isSelected()) {
@@ -242,6 +261,65 @@ public class MergedPanel extends JPanel {
 			}
 		}
 		updateClusterRatios(crops);
+		repaint();
+	}
+
+	public void setSelCropSize(int width, int height) {
+		for (DrawableCropRect crop : crops) {
+			if (crop.isSelected()) {
+                                int diffToMaxW = width - crop.width;
+                                int diffToMaxH = height - crop.height;
+                                crop.grow(diffToMaxW / 2, diffToMaxH / 2);
+			}
+		}
+		updateClusterRatios(crops);
+		repaint();
+	}
+
+	public void resizeSelCrop(int width, int height) {
+		for (DrawableCropRect crop : crops) {
+			if (crop.isSelected()) {
+                                if (((width < 0) && (crop.width <= -width)) ||
+                                        ((height < 0) && (crop.height <= -height)))
+                                        return;
+                                crop.setSize(crop.width + width, crop.height + height);
+			}
+		}
+		updateClusterRatios(crops);
+		repaint();
+	}
+
+	public void setAllCropSize(int width, int height) {
+		for (DrawableCropRect crop : crops) {
+                        crop.setSize(width, height);
+		}
+		updateClusterRatios(crops);
+		repaint();
+	}
+
+	public void moveSelelectedCrops(int x, int y) {
+		for (DrawableCropRect crop : crops) {
+			if (crop.isSelected()) {
+				int newX = crop.x + x;
+				int newY = crop.y + y;
+				crop.setLocation(newX, newY);
+			}
+		}
+		repaint();
+	}
+
+	public void moveToSelelectedCrops(int x, int y) {
+		for (DrawableCropRect crop : crops) {
+			if (crop.isSelected()) {
+				crop.setLocation(x, y);
+			}
+		}
+		repaint();
+	}
+
+	public void selectCrops(boolean select) {
+		for (DrawableCropRect crop : crops)
+			crop.setSelected(select);
 		repaint();
 	}
 
@@ -336,6 +414,15 @@ public class MergedPanel extends JPanel {
 		repaint();
 	}
 
+	private void alignSelected(Point p) {
+                for (DrawableCropRect crop : crops) {
+                        if (crop.contains(p)) {
+                                briss.alignSelRects(crop.x, crop.y, crop.width, crop.height);
+                                break;
+                        }
+                }
+	}
+
 	private void deleteAllSelected() {
 		List<DrawableCropRect> removeList = new ArrayList<DrawableCropRect>();
 		for (DrawableCropRect crop : crops) {
@@ -384,19 +471,53 @@ public class MergedPanel extends JPanel {
 
 		@Override
 		public void keyPressed(KeyEvent e) {
-			if (e.getKeyCode() == KeyEvent.VK_C) {
+			switch (e.getKeyCode()) {
+                            case KeyEvent.VK_C:
 				if (e.getModifiers() == InputEvent.CTRL_MASK) {
 					copyToClipBoard();
 				}
-			}
-			if (e.getKeyCode() == KeyEvent.VK_V) {
+                                break;
+                            case KeyEvent.VK_V:
 				if (e.getModifiers() == InputEvent.CTRL_MASK) {
 					pasteFromClipBoard();
 				}
-			}
-			if (e.getKeyCode() == KeyEvent.VK_DELETE) {
+                                break;
+                            case KeyEvent.VK_DELETE:
 				deleteAllSelected();
-			}
+                                break;
+                            case KeyEvent.VK_LEFT:
+                            case KeyEvent.VK_RIGHT:
+                            case KeyEvent.VK_UP:
+                            case KeyEvent.VK_DOWN:
+                                int x = 0;
+                                int y = 0;
+                                switch (e.getKeyCode()) {
+                                    case KeyEvent.VK_LEFT:
+                                        x = -1;
+                                        break;
+                                    case KeyEvent.VK_RIGHT:
+                                        x = 1;
+                                        break;
+                                    case KeyEvent.VK_UP:
+                                        y = -1;
+                                        break;
+                                    case KeyEvent.VK_DOWN:
+                                        y = 1;
+                                        break;
+                                }
+				if ((e.getModifiers() & InputEvent.SHIFT_MASK) != 0) {
+                                    x *= 10;
+                                    y *= 10;
+                                }
+				if ((e.getModifiers() & InputEvent.CTRL_MASK) != 0) {
+                                        briss.resizeSelRects(x, y);
+                                }
+                                else {
+                                        briss.moveSelectedRects(x, y);
+                                }
+                                break;
+                            default:
+                        }
 		}
 
 	}
@@ -431,6 +552,9 @@ public class MergedPanel extends JPanel {
 			} else if (PopUpMenuForCropRectangles.PASTE.equals(e
 					.getActionCommand())) {
 				pasteFromClipBoard();
+			} else if (PopUpMenuForCropRectangles.ALIGN_SELECTED.equals(e
+					.getActionCommand())) {
+				alignSelected(popUpMenuPoint);
 			}
 		}
 
@@ -454,19 +578,47 @@ public class MergedPanel extends JPanel {
 				if (lastDragPoint == null) {
 					lastDragPoint = curPoint;
 				}
-				curCrop.translate(curPoint.x - lastDragPoint.x, curPoint.y
-						- lastDragPoint.y);
+                                if (mE.isShiftDown()) {
+                                        briss.moveSelectedRects(curPoint.x - lastDragPoint.x,
+                                                curPoint.y - lastDragPoint.y);
+                                }
+                                else {
+                                        curCrop.translate(curPoint.x - lastDragPoint.x,
+                                                curPoint.y - lastDragPoint.y);
+                                }
 				lastDragPoint = curPoint;
 				break;
 			case RESIZING_HOTCORNER_LR:
-				curPoint.translate(relativeHotCornerGrabDistance.x,
-						relativeHotCornerGrabDistance.y);
-				curCrop.setNewHotCornerLR(curPoint);
+				if (lastDragPoint == null) {
+					lastDragPoint = curPoint;
+				}
+                                if (mE.isShiftDown()) {
+                                        briss.resizeSelRects(curPoint.x - lastDragPoint.x,
+                                               curPoint.y - lastDragPoint.y);
+                                }
+                                else {
+                                        curPoint.translate(relativeHotCornerGrabDistance.x,
+                                                relativeHotCornerGrabDistance.y);
+                                        curCrop.setNewHotCornerLR(curPoint);
+                                }
+				lastDragPoint = curPoint;
 				break;
 			case RESIZING_HOTCORNER_UL:
-				curPoint.translate(relativeHotCornerGrabDistance.x,
-						relativeHotCornerGrabDistance.y);
-				curCrop.setNewHotCornerUL(curPoint);
+				if (lastDragPoint == null) {
+					lastDragPoint = curPoint;
+				}
+                                if (mE.isShiftDown()) {
+                                        briss.resizeSelRects(lastDragPoint.x - curPoint.x,
+                                               lastDragPoint.y - curPoint.y);
+                                        briss.moveSelectedRects(curPoint.x - lastDragPoint.x,
+                                               curPoint.y - lastDragPoint.y);
+                                }
+                                else {
+                                        curPoint.translate(relativeHotCornerGrabDistance.x,
+                                                relativeHotCornerGrabDistance.y);
+                                        curCrop.setNewHotCornerUL(curPoint);
+                                }
+				lastDragPoint = curPoint;
 				break;
 			}
 			repaint();
@@ -550,10 +702,11 @@ public class MergedPanel extends JPanel {
 		}
 
 		private class PopUpMenuForCropRectangles extends JPopupMenu {
-			public static final String DELETE = "Delete Rectangle";
-			public static final String SELECT_DESELECT = "Select/Deselect Rectangle";
-			public static final String COPY = "Copy Selected Rectangles";
-			public static final String PASTE = "Paste Rectangles";
+			public static final String DELETE = "Delete rectangle";
+			public static final String SELECT_DESELECT = "Select/Deselect rectangle";
+			public static final String COPY = "Copy Selected rectangles";
+			public static final String PASTE = "Paste rectangles";
+                        public static final String ALIGN_SELECTED = "Align selected rectangles";
 
 			public PopUpMenuForCropRectangles() {
 
@@ -589,6 +742,10 @@ public class MergedPanel extends JPanel {
 						.getAmountOfCropsInClipBoard() > 0);
 				add(pasteItem);
 
+				JMenuItem alignItem = new JMenuItem(ALIGN_SELECTED);
+				alignItem.addActionListener(MergedPanelMouseAdapter.this);
+				alignItem.setEnabled(true);
+				add(alignItem);
 			}
 		}
 	}

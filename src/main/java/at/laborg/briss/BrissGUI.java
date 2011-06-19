@@ -1,6 +1,6 @@
 // $Id$
 /**
- * Copyright 2010 Gerhard Aigner
+ * Copyright 2010, 2011 Gerhard Aigner, Rastislav Wartiak
  * 
  * This file is part of BRISS.
  * 
@@ -55,6 +55,8 @@ import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingWorker;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
+import javax.swing.KeyStroke;
+import javax.swing.JTextField;
 
 import org.jpedal.exception.PdfException;
 
@@ -89,6 +91,7 @@ public class BrissGUI extends JFrame implements ActionListener,
 	private static final String EXCLUDE_PAGES_DESCRIPTION = "Enter pages to be excluded from merging (e.g.: \"1-4;6;9\").\n"
 			+ "First page has number: 1\n"
 			+ "If you don't know what you should do just press \"Cancel\"";
+	private static final String SET_SIZE_DESCRIPTION = "Enter size (width height)";
 	private static final String LOAD = "Load File";
 	private static final String CROP = "Crop PDF";
 	private static final String EXIT = "Exit";
@@ -98,6 +101,14 @@ public class BrissGUI extends JFrame implements ActionListener,
 	private static final String PREVIEW = "Preview";
 	private static final String DONATE = "Donate";
 	private static final String HELP = "Show help";
+	private static final String MAXIMIZE_SIZE = "Maximize to size (all)";
+        private static final String SET_SIZE = "Set size (selected)";
+        private static final String MOVE_LEFT = "Move left (selected)";
+        private static final String MOVE_RIGHT = "Move right (selected)";
+        private static final String MOVE_UP = "Move up (selected)";
+        private static final String MOVE_DOWN = "Move down (selected)";
+        private static final String SELECT_ALL = "Select all";
+        private static final String SELECT_NONE = "Select none";
 
 	private static final String DONATION_URI = "http://sourceforge.net/project/project_donations.php?group_id=320676";
 	private static final String RES_ICON_PATH = "/Briss_icon_032x032.gif";
@@ -108,6 +119,9 @@ public class BrissGUI extends JFrame implements ActionListener,
 	private JMenuItem loadButton, cropButton, maximizeWidthButton,
 			maximizeHeightButton, showPreviewButton, showHelpButton,
 			openDonationLinkButton, excludePagesButton;
+        private JMenuItem maximizeSizeButton, setSizeButton,
+                moveLeftButton, moveRightButton, moveUpButton, moveDownButton,
+                selectAllButton, selectNoneButton;
 	private List<MergedPanel> mergedPanels = null;
 
 	private File lastOpenDir;
@@ -153,15 +167,19 @@ public class BrissGUI extends JFrame implements ActionListener,
 		menuBar = new JMenuBar();
 		JMenu fileMenu = new JMenu("File");
 		fileMenu.setMnemonic(KeyEvent.VK_F);
+		JMenu rectangleMenu = new JMenu("Rectangle");
+		rectangleMenu.setMnemonic(KeyEvent.VK_R);
 		JMenu actionMenu = new JMenu("Action");
 		actionMenu.setMnemonic(KeyEvent.VK_A);
 
 		menuBar.add(fileMenu);
+		menuBar.add(rectangleMenu);
 		menuBar.add(actionMenu);
 
 		loadButton = new JMenuItem(LOAD, KeyEvent.VK_L);
 		loadButton.addActionListener(this);
 		loadButton.setEnabled(true);
+                loadButton.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_L, 0));
 		fileMenu.add(loadButton);
 
 		fileMenu.addSeparator();
@@ -173,6 +191,7 @@ public class BrissGUI extends JFrame implements ActionListener,
 		excludePagesButton = new JMenuItem(EXCLUDE_OTHER_PAGES);
 		excludePagesButton.addActionListener(this);
 		excludePagesButton.setEnabled(false);
+                excludePagesButton.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_E, 0));
 		fileMenu.add(excludePagesButton);
 
 		showHelpButton = new JMenuItem(HELP);
@@ -188,22 +207,78 @@ public class BrissGUI extends JFrame implements ActionListener,
 		cropButton = new JMenuItem(CROP, KeyEvent.VK_C);
 		cropButton.addActionListener(this);
 		cropButton.setEnabled(false);
+                cropButton.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C, 0));
 		actionMenu.add(cropButton);
 
 		showPreviewButton = new JMenuItem(PREVIEW, KeyEvent.VK_P);
 		showPreviewButton.addActionListener(this);
 		showPreviewButton.setEnabled(false);
+                showPreviewButton.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_P, 0));
 		actionMenu.add(showPreviewButton);
 
 		maximizeWidthButton = new JMenuItem(MAXIMIZE_WIDTH, KeyEvent.VK_W);
 		maximizeWidthButton.addActionListener(this);
 		maximizeWidthButton.setEnabled(false);
-		actionMenu.add(maximizeWidthButton);
+                maximizeWidthButton.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_W, 0));
+		rectangleMenu.add(maximizeWidthButton);
 
 		maximizeHeightButton = new JMenuItem(MAXIMIZE_HEIGHT, KeyEvent.VK_H);
 		maximizeHeightButton.addActionListener(this);
 		maximizeHeightButton.setEnabled(false);
-		actionMenu.add(maximizeHeightButton);
+                maximizeHeightButton.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_H, 0));
+		rectangleMenu.add(maximizeHeightButton);
+
+		maximizeSizeButton = new JMenuItem(MAXIMIZE_SIZE, KeyEvent.VK_Z);
+		maximizeSizeButton.addActionListener(this);
+		maximizeSizeButton.setEnabled(false);
+                maximizeSizeButton.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_M, 0));
+		rectangleMenu.add(maximizeSizeButton);
+
+		setSizeButton = new JMenuItem(SET_SIZE, KeyEvent.VK_S);
+		setSizeButton.addActionListener(this);
+		setSizeButton.setEnabled(false);
+                setSizeButton.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, 0));
+		rectangleMenu.add(setSizeButton);
+
+                rectangleMenu.addSeparator();
+                
+		moveLeftButton = new JMenuItem(MOVE_LEFT, KeyEvent.VK_LEFT);
+		moveLeftButton.addActionListener(this);
+		moveLeftButton.setEnabled(false);
+                moveLeftButton.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_LEFT, 0));
+		rectangleMenu.add(moveLeftButton);
+
+		moveRightButton = new JMenuItem(MOVE_RIGHT, KeyEvent.VK_RIGHT);
+		moveRightButton.addActionListener(this);
+		moveRightButton.setEnabled(false);
+                moveRightButton.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT, 0));
+		rectangleMenu.add(moveRightButton);
+
+		moveUpButton = new JMenuItem(MOVE_UP, KeyEvent.VK_UP);
+		moveUpButton.addActionListener(this);
+		moveUpButton.setEnabled(false);
+                moveUpButton.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_UP, 0));
+		rectangleMenu.add(moveUpButton);
+
+		moveDownButton = new JMenuItem(MOVE_DOWN, KeyEvent.VK_DOWN);
+		moveDownButton.addActionListener(this);
+		moveDownButton.setEnabled(false);
+                moveDownButton.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_DOWN, 0));
+		rectangleMenu.add(moveDownButton);
+
+                rectangleMenu.addSeparator();
+                
+		selectAllButton = new JMenuItem(SELECT_ALL, 0);
+		selectAllButton.addActionListener(this);
+		selectAllButton.setEnabled(false);
+                selectAllButton.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_A, 0));
+		rectangleMenu.add(selectAllButton);
+
+		selectNoneButton = new JMenuItem(SELECT_NONE, 0);
+		selectNoneButton.addActionListener(this);
+		selectNoneButton.setEnabled(false);
+                selectNoneButton.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_N, 0));
+		rectangleMenu.add(selectNoneButton);
 
 		setJMenuBar(menuBar);
 
@@ -399,7 +474,15 @@ public class BrissGUI extends JFrame implements ActionListener,
 			} finally {
 				setIdleState("");
 			}
-		}
+		} else if (action.getActionCommand().equals(MAXIMIZE_SIZE)) {
+			maximizeSizeInAllRects();
+		} else if (action.getActionCommand().equals(SET_SIZE)) {
+                        setDefinedSizeSelRects();
+		} else if (action.getActionCommand().equals(SELECT_ALL)) {
+                        for (MergedPanel panel : mergedPanels) panel.selectCrops(true);
+		} else if (action.getActionCommand().equals(SELECT_NONE)) {
+                        for (MergedPanel panel : mergedPanels) panel.selectCrops(false);
+                }
 	}
 
 	private File createAndExecuteCropJobForPreview() throws IOException,
@@ -465,7 +548,7 @@ public class BrissGUI extends JFrame implements ActionListener,
 				maxWidth = panelMaxWidth;
 			}
 		}
-		// set maximum widt to all rectangles
+		// set maximum width to all rectangles
 		if (maxWidth == -1)
 			return;
 		for (MergedPanel mp : mergedPanels) {
@@ -491,6 +574,106 @@ public class BrissGUI extends JFrame implements ActionListener,
 		}
 	}
 
+	private void maximizeSizeInAllRects() {
+		// maximize to width and height for all rectangles
+		// search for maximums
+		int maxWidth = -1;
+		int maxHeight = -1;
+		for (MergedPanel panel : mergedPanels) {
+			Dimension panelMaxSize = panel.getLargestRect();
+			if (maxWidth < panelMaxSize.width) {
+				maxWidth = panelMaxSize.width;
+			}
+			if (maxHeight < panelMaxSize.height) {
+				maxHeight = panelMaxSize.height;
+			}
+		}
+		// set maximum size to all rectangles
+		if ((maxWidth == -1 ) || (maxHeight == -1))
+			return;
+		for (MergedPanel mp : mergedPanels) {
+			mp.setAllCropSize(maxWidth, maxHeight);
+		}
+	}
+        
+        public void alignSelRects(int x, int y, int w, int h)
+        {
+                // set position and size of selected rectangles
+		for (MergedPanel mp : mergedPanels) {
+                        mp.setSelCropSize(w, h);
+			mp.moveToSelelectedCrops(x, y);
+		}
+        }
+
+        public void moveSelectedRects(int x, int y)
+        {
+                // move selected rectangles
+                // parameters are relative to current position
+		for (MergedPanel mp : mergedPanels) {
+			mp.moveSelelectedCrops(x, y);
+		}
+        }
+
+        public void setDefinedSizeSelRects()
+        {
+                // set size of selected rectangles
+                // based on user input
+
+                String defInput = "";
+
+                // get maximum dimensions
+                int maxWidth = -1;
+		int maxHeight = -1;
+		for (MergedPanel panel : mergedPanels) {
+			int panelMaxWidth = panel.getWidestSelectedRect();
+			if (maxWidth < panelMaxWidth) {
+				maxWidth = panelMaxWidth;
+			}
+			int panelMaxHeight = panel.getHeighestSelectedRect();
+			if (maxHeight < panelMaxHeight) {
+				maxHeight = panelMaxHeight;
+			}
+		}
+		if ((maxWidth >= 0 ) && (maxHeight >= 0))
+			defInput = Integer.toString(maxWidth) + " " + Integer.toString(maxHeight);
+
+                // get user input
+                // maximums are used as a default
+                String input = JOptionPane.showInputDialog(
+                                SET_SIZE_DESCRIPTION, defInput);
+
+                if (input == null || input.equals(""))
+                        return;
+                
+                String[] dims = input.split(" ", 2);
+                if (dims.length != 2)
+                        return;
+                
+                int w = -1;
+                int h = -1;
+                try {
+                        w = Integer.parseInt(dims[0]);
+                        h = Integer.parseInt(dims[1]);
+                }
+                catch (NumberFormatException e)
+                {
+                    return;
+                }
+
+		for (MergedPanel mp : mergedPanels) {
+			mp.setSelCropWidth(w);
+			mp.setSelCropHeight(h);
+		}
+        }
+
+        public void resizeSelRects(int w, int h)
+        {
+                // change size of selected rectangles (relative)
+		for (MergedPanel mp : mergedPanels) {
+			mp.resizeSelCrop(w, h);
+		}
+        }
+
 	@Override
 	public void propertyChange(PropertyChangeEvent evt) {
 		if ("progress".equals(evt.getPropertyName())) {
@@ -507,7 +690,7 @@ public class BrissGUI extends JFrame implements ActionListener,
 
 		for (PageCluster cluster : workingSet.getClusterDefinition()
 				.getClusterList()) {
-			MergedPanel p = new MergedPanel(cluster);
+			MergedPanel p = new MergedPanel(cluster, this);
 			previewPanel.add(p);
 			mergedPanels.add(p);
 		}
@@ -517,6 +700,14 @@ public class BrissGUI extends JFrame implements ActionListener,
 		maximizeHeightButton.setEnabled(true);
 		excludePagesButton.setEnabled(true);
 		showPreviewButton.setEnabled(true);
+		maximizeSizeButton.setEnabled(true);
+		setSizeButton.setEnabled(true);
+		moveLeftButton.setEnabled(true);
+		moveRightButton.setEnabled(true);
+		moveUpButton.setEnabled(true);
+		moveDownButton.setEnabled(true);
+		selectAllButton.setEnabled(true);
+		selectNoneButton.setEnabled(true);
 		setIdleState("");
 		pack();
 		setExtendedState(Frame.MAXIMIZED_BOTH);
