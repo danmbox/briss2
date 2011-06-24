@@ -185,7 +185,10 @@ public class MergedPanel extends JPanel {
 				+ SELECT_BORDER_WIDTH / 2, crop.width - SELECT_BORDER_WIDTH,
 				crop.height - SELECT_BORDER_WIDTH);
 
-                String size = Integer.toString(crop.width) + "x" + Integer.toString(crop.height);
+                // display crop size in milimeters
+                int w = Math.round(25.4f * crop.width / 72f);
+                int h = Math.round(25.4f * crop.height / 72f);
+                String size = Integer.toString(w) + "x" + Integer.toString(h);
 		g2.setFont(scaleFont(size, crop));
 		g2.setColor(Color.YELLOW);
 		g2.setComposite(SMOOTH_SELECT);
