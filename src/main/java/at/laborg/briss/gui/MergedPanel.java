@@ -231,6 +231,30 @@ public class MergedPanel extends JPanel {
 		return max;
 	}
 
+	public int getLeftmostSelectedRect() {
+		int min = Integer.MAX_VALUE;
+		for (DrawableCropRect crop : crops) {
+			if (crop.isSelected()) {
+				if (crop.x < min) {
+					min = crop.x;
+				}
+			}
+		}
+		return min;
+	}
+
+	public int getUpmostSelectedRect() {
+		int min = Integer.MAX_VALUE;
+		for (DrawableCropRect crop : crops) {
+			if (crop.isSelected()) {
+				if (crop.y < min) {
+					min = crop.y;
+				}
+			}
+		}
+		return min;
+	}
+
 	public Dimension getLargestRect() {
 		int maxW = -1;
 		int maxH = -1;
