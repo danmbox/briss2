@@ -6,12 +6,15 @@ import java.util.Date;
 
 import at.laborg.briss.utils.BrissFileHandling;
 
-public class AutoCropTest {
+public final class AutoCropTest {
+
+	private AutoCropTest() {
+	};
 
 	/**
 	 * @param args
 	 */
-	public static void main(String[] args) {
+	public static void main(final String[] args) {
 		File wd = new File(System.getProperty("user.dir") + File.separatorChar
 				+ "pdftests");
 		File outputDirectory = new File(wd.getAbsolutePath()
@@ -20,9 +23,8 @@ public class AutoCropTest {
 
 		for (File file : wd.listFiles(new FileFilter() {
 
-			@Override
-			public boolean accept(File arg0) {
-				return arg0.getAbsolutePath().toLowerCase().endsWith(".pdf");
+			public boolean accept(final File file) {
+				return file.getAbsolutePath().toLowerCase().endsWith(".pdf");
 			}
 
 		})) {
