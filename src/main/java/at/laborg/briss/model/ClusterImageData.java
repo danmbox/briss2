@@ -9,8 +9,8 @@ import java.awt.image.WritableRaster;
 
 public class ClusterImageData {
 
-	private final static int MAX_PAGE_HEIGHT = 900;
-	private final static int MAX_IMAGE_RENDER_SIZE = 2000 * 2000;
+	private static final int MAX_PAGE_HEIGHT = 900;
+	private static final int MAX_IMAGE_RENDER_SIZE = 2000 * 2000;
 
 	private final boolean renderable;
 	private BufferedImage outputImage = null;
@@ -20,16 +20,16 @@ public class ClusterImageData {
 	private int imageCnt = 0;
 	private final int totalImages;
 
-	public ClusterImageData(int pageWidth, int pageHeight, int nrOfImages) {
+	public ClusterImageData(final int pageWidth, final int pageHeight, final int nrOfImages) {
 		this.renderable = pageWidth * pageHeight < MAX_IMAGE_RENDER_SIZE;
 		totalImages = nrOfImages;
 	}
 
-	public boolean isRenderable() {
+	public final boolean isRenderable() {
 		return renderable;
 	}
 
-	public void addImageToPreview(BufferedImage imageToAdd) {
+	public final void addImageToPreview(final BufferedImage imageToAdd) {
 		if (!renderable)
 			return;
 		if (outputImageHeight == -1) {
@@ -38,7 +38,7 @@ public class ClusterImageData {
 		add(scaleImage(imageToAdd, outputImageWidth, outputImageHeight));
 	}
 
-	private void initializeOutputImage(BufferedImage imageToAdd) {
+	private void initializeOutputImage(final BufferedImage imageToAdd) {
 		outputImageHeight = imageToAdd.getHeight() > MAX_PAGE_HEIGHT ? MAX_PAGE_HEIGHT
 				: imageToAdd.getHeight();
 		float scaleFactor = (float) outputImageHeight / imageToAdd.getHeight();
@@ -46,7 +46,7 @@ public class ClusterImageData {
 		imgdata = new short[outputImageWidth][outputImageHeight][totalImages];
 	}
 
-	private void add(BufferedImage image) {
+	private void add(final BufferedImage image) {
 		int[] tmp = null;
 		int height = image.getHeight();
 		int width = image.getWidth();
@@ -59,7 +59,7 @@ public class ClusterImageData {
 		imageCnt++;
 	}
 
-	public BufferedImage getPreviewImage() {
+	public final BufferedImage getPreviewImage() {
 
 		if (!renderable)
 			return getUnrenderableImage();
@@ -107,8 +107,8 @@ public class ClusterImageData {
 		return outputImage;
 	}
 
-	private static BufferedImage scaleImage(BufferedImage bsrc, int width,
-			int height) {
+	private static BufferedImage scaleImage(final BufferedImage bsrc, final int width,
+			final int height) {
 
 		BufferedImage bdest = new BufferedImage(width, height,
 				BufferedImage.TYPE_BYTE_GRAY);
@@ -146,7 +146,7 @@ public class ClusterImageData {
 		return bimage;
 	}
 
-	private static int[][] calculateSdOfImages(short[][][] imgdata, int imageCnt) {
+	private static int[][] calculateSdOfImages(final short[][][] imgdata, final int imageCnt) {
 		int width = imgdata.length;
 		int height = imgdata[0].length;
 		int[][] sum = new int[width][height];

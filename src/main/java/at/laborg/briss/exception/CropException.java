@@ -15,23 +15,13 @@
  * You should have received a copy of the GNU General Public License along with
  * BRISS. If not, see http://www.gnu.org/licenses/.
  */
-package at.laborg.briss;
+package at.laborg.briss.exception;
 
-public final class Briss {
-	
-	private Briss() {
-	};
+@SuppressWarnings("serial")
+public class CropException extends Exception {
 
-	public static void main(final String[] args) {
-
-		// this needs to be set in order to cope with jp2000 images
-		System.setProperty("org.jpedal.jai", "true");
-
-		// check if args are present, if so try to start commandline briss
-		if (args.length > 1) {
-			BrissCMD.autoCrop(args);
-		} else {
-			new BrissGUI(args);
-		}
+	public CropException(final String message) {
+		super(message);
 	}
+
 }

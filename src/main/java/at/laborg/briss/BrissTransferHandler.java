@@ -34,12 +34,12 @@ final class BrissTransferHandler extends TransferHandler {
 	private static final long serialVersionUID = 1L;
 	private final BrissGUI brissGUI;
 
-	BrissTransferHandler(BrissGUI brissGUI) {
+	BrissTransferHandler(final BrissGUI brissGUI) {
 		this.brissGUI = brissGUI;
 	}
 
 	@Override
-	public boolean canImport(TransferSupport support) {
+	public boolean canImport(final TransferSupport support) {
 		if (!support.isDataFlavorSupported(DataFlavor.stringFlavor))
 			return false;
 		return true;
@@ -47,7 +47,7 @@ final class BrissTransferHandler extends TransferHandler {
 	}
 
 	@Override
-	public boolean importData(TransferSupport support) {
+	public boolean importData(final TransferSupport support) {
 		if (!canImport(support))
 			return false;
 

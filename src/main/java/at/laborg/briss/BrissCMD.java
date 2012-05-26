@@ -32,9 +32,12 @@ import at.laborg.briss.utils.DocumentCropper;
 
 import com.itextpdf.text.DocumentException;
 
-public class BrissCMD {
+public final class BrissCMD {
 
-	public static void autoCrop(String[] args) {
+	private BrissCMD() {
+	};
+
+	public static void autoCrop(final String[] args) {
 
 		CommandValues workDescription = CommandValues
 				.parseToWorkDescription(args);
@@ -96,13 +99,13 @@ public class BrissCMD {
 
 	private static class CommandValues {
 
-		private final static String SOURCE_FILE_CMD = "-s";
-		private final static String DEST_FILE_CMD = "-d";
+		private static final String SOURCE_FILE_CMD = "-s";
+		private static final String DEST_FILE_CMD = "-d";
 
 		private File sourceFile;
 		private File destFile;
 
-		static CommandValues parseToWorkDescription(String[] args) {
+		static CommandValues parseToWorkDescription(final String[] args) {
 			CommandValues commandValues = new CommandValues();
 			int i = 0;
 			while (i < args.length) {
@@ -121,7 +124,7 @@ public class BrissCMD {
 			return commandValues;
 		}
 
-		private static boolean isValidJob(CommandValues job) {
+		private static boolean isValidJob(final CommandValues job) {
 			if (job.getSourceFile() == null) {
 				System.out
 						.println("No source file submitted: try \"java -jar Briss.0.0.13 -s filename.pdf\"");
@@ -146,8 +149,8 @@ public class BrissCMD {
 				System.out.println("Destination file couldn't be created!");
 				return false;
 			} catch (IOException e) {
-				System.out.println("IO Error while creating destination file."
-						+ e.getStackTrace());
+				System.out.println("IO Error while creating destination file.");
+				e.getStackTrace();
 				return false;
 			}
 
@@ -158,7 +161,7 @@ public class BrissCMD {
 			return sourceFile;
 		}
 
-		public void setSourceFile(File sourceFile) {
+		public void setSourceFile(final File sourceFile) {
 			this.sourceFile = sourceFile;
 		}
 
@@ -166,7 +169,7 @@ public class BrissCMD {
 			return destFile;
 		}
 
-		public void setDestFile(File destFile) {
+		public void setDestFile(final File destFile) {
 			this.destFile = destFile;
 		}
 
