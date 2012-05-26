@@ -23,14 +23,19 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-public class DesktopHelper {
-	public static void openFileWithDesktopApp(File cropDestinationFile) throws IOException {
+public final class DesktopHelper {
+
+	private DesktopHelper() {
+	};
+
+	public static void openFileWithDesktopApp(final File cropDestinationFile)
+			throws IOException {
 		if (Desktop.isDesktopSupported()) {
-				Desktop.getDesktop().open(cropDestinationFile);
+			Desktop.getDesktop().open(cropDestinationFile);
 		}
 	}
 
-	public static void openDonationLink(String uri) throws IOException {
+	public static void openDonationLink(final String uri) throws IOException {
 		if (Desktop.isDesktopSupported()) {
 			Desktop desktop = Desktop.getDesktop();
 			URI donationURI;

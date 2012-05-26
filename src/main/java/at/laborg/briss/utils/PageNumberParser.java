@@ -24,7 +24,11 @@ import java.util.StringTokenizer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class PageNumberParser {
+public final class PageNumberParser {
+
+	
+	private PageNumberParser() {
+	};
 
 	/**
 	 * Super simple page-number parser. It handles entries like: "1-2;34;3-16"
@@ -34,7 +38,7 @@ public class PageNumberParser {
 	 * @return
 	 * @throws ParseException
 	 */
-	public static Set<Integer> parsePageNumber(String input)
+	public static Set<Integer> parsePageNumber(final String input)
 			throws ParseException {
 
 		Pattern p = Pattern.compile("[^0-9-;]");
@@ -55,7 +59,7 @@ public class PageNumberParser {
 		return pNS;
 	}
 
-	private static Set<Integer> extractPageNumbers(String input)
+	private static Set<Integer> extractPageNumbers(final String input)
 			throws ParseException {
 
 		StringTokenizer tokenizer = new StringTokenizer(input, "-");
