@@ -19,6 +19,13 @@
 ################################################
 CHANGELOG  - BRISS  
 ################################################
+* 0.9 (26.05.2012)
+ * better handling of bookmarks
+ * library updates
+ * Rastislav Wartiak added a couple of user-interface/rectangle handling features
+ ** rectangles have setable size and position
+ ** keyboard bindings for actions
+ ** show rectangle size of selected rectangles
 
 * 0.0.13 (11.04.2011) 
  * Added automatically crop rectangle calculation

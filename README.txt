@@ -44,9 +44,9 @@ Starting the application
 ########################
 You can run the application by executing following command in terminal:
 
-java -jar briss-0.0.13.jar
+java -jar briss-0.9.jar
 or
-java -jar briss-0.0.13.jar cropthis.pdf
+java -jar briss-0.9.jar cropthis.pdf
 
 (The second line comes in handy if you want shortlinks for pdf editing) 
 
@@ -58,11 +58,11 @@ Commandline
 If you prefer command line and trust the basic automatic detection algorithm
 use it this way (can be batched!):
 
-java -jar briss-0.0.13.jar -s [SOURCEFILE] [-d [DESTINATIONFILE]]
+java -jar briss-0.9.jar -s [SOURCEFILE] [-d [DESTINATIONFILE]]
 
 Example:
-java -jar briss-0.0.13.jar -s dogeatdog.pdf -d dogcrop.pdf
-java -jar briss-0.0.13.jar -s dogeatdog.pdf 
+java -jar briss-0.9.jar -s dogeatdog.pdf -d dogcrop.pdf
+java -jar briss-0.9.jar -s dogeatdog.pdf 
 
 the second line will create the cropped pdf into dogeatdog_cropped.pdf
 
@@ -93,5 +93,4 @@ Problems
 ########################
 * If you want to crop really big files it might be necessary to start briss with 
 an additional parameter: "-Xms128m -Xmx1024m" (complete call would look like: 
-"java -Xms128m -Xmx1024m -jar briss-0.0.11.jar")
-* At the moment Briss can't deal with JP2000 Images.
+"java -Xms128m -Xmx1024m -jar briss-0.9.jar")
