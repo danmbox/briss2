@@ -559,7 +559,6 @@ public class MergedPanel extends JPanel {
 			}
 		}
 
-		@Override
 		public void actionPerformed(ActionEvent e) {
 			if (PopUpMenuForCropRectangles.DELETE.equals(e.getActionCommand())) {
 				for (Rectangle crop : crops) {
