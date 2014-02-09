@@ -31,6 +31,7 @@ import at.laborg.briss.utils.BrissFileHandling;
 import at.laborg.briss.utils.ClusterCreator;
 import at.laborg.briss.utils.ClusterRenderWorker;
 import at.laborg.briss.utils.DocumentCropper;
+import at.laborg.briss.utils.CropParser;
 
 import com.itextpdf.text.DocumentException;
 
@@ -205,20 +206,7 @@ public final class BrissCMD {
 		 * @param string the command parameter
 		 */
 		private void setCropDefinition(String string) {
-			crop = new ArrayList<List<Float[]>>();
-			for(String page : string.split(":")) {
-				List<Float[]> pageratios = new ArrayList<Float[]>();
-				crop.add(pageratios);
-				for(String part : page.split(",")) {
-					String[] parts = part.split("/");
-					Float[] ratios = new Float[parts.length];
-					for(int i = 0; i < ratios.length; i++) {
-						ratios[i] = Float.parseFloat(parts[i]);
-					}
-					pageratios.add(ratios);
-				}
-			}
-
+			crop = CropParser.parse (string);
 		}
 
 		private static boolean isValidJob(final CommandValues job) {
