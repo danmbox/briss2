@@ -75,6 +75,7 @@ import at.laborg.briss.utils.DesktopHelper;
 import at.laborg.briss.utils.DocumentCropper;
 import at.laborg.briss.utils.PDFFileFilter;
 import at.laborg.briss.utils.PageNumberParser;
+import at.laborg.briss.utils.CropParser;
 
 import com.itextpdf.text.DocumentException;
 
@@ -458,33 +459,7 @@ public class BrissGUI extends JFrame implements ActionListener,
 		}
 		else if (action.getActionCommand().equals(SHOW_CROP)) {
 			ClusterDefinition clusters = workingSet.getClusterDefinition();
-			StringBuilder crop = new StringBuilder();
-
-			for (int i = 0; i < clusters.getClusterList().size(); i++) {
-				PageCluster cluster = clusters.getClusterList().get(i);
-				for(int j = 0; j < cluster.getRatiosList().size(); j++) {
-					Float[] parts = cluster.getRatiosList().get(j);
-					for(int k = 0; k < parts.length; k++) {
-						// cut away those huge decimals
-						if(0.0 == parts[k])
-							crop.append('0');
-						else
-							crop.append(String.valueOf(parts[k].floatValue()));
-						if(k != parts.length - 1) {
-							crop.append('/');
-						}
-					}
-
-					if(j != cluster.getRatiosList().size() - 1) {
-						crop.append(',');
-					}
-				}
-
-				if(i != clusters.getClusterList().size() - 1) {
-					crop.append(":");
-				}
-			}
-			JOptionPane.showInputDialog(this, "Crop Option: ", crop.toString());
+			JOptionPane.showInputDialog(this, "Crop Option: ", CropParser.cropToString (clusters.getAllRatios()));
 		}
 		else if (action.getActionCommand().equals(CROP)) {
 			try {

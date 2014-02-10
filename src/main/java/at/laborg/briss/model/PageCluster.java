@@ -72,6 +72,12 @@ public class PageCluster implements Comparable<PageCluster> {
 		return cropRatiosList;
 	}
 
+	public final void setRatiosList(final List<Float[]> ratiosList) {
+		clearRatios();
+		for (final Float[] ratios : ratiosList)
+			addRatios (ratios);
+	}
+
 	public final void clearRatios() {
 		cropRatiosList.clear();
 	}

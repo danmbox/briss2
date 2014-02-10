@@ -36,6 +36,14 @@ public class ClusterDefinition {
 		return clusters;
 	}
 
+	public final List<List<Float[]>> getAllRatios () {
+		List<List<Float[]>> result = new ArrayList<List<Float[]>> ();
+		for (PageCluster cluster : getClusterList()) {
+			result.add (new ArrayList<Float []> (cluster.getRatiosList()));
+		}
+		return result;
+	}
+
 	public final void addOrMergeCluster(final PageCluster tmpCluster) {
 		PageCluster existingCluster = findNearlyEqualCluster(tmpCluster);
 		if (existingCluster != null) {
