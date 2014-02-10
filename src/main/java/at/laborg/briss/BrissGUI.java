@@ -94,6 +94,7 @@ public class BrissGUI extends JFrame implements ActionListener,
 	private static final String SET_SIZE_DESCRIPTION = "Enter size in milimeters (width height)";
 	private static final String SET_POSITION_DESCRIPTION = "Enter position in milimeters (x y)";
 	private static final String LOAD = "Load File";
+	private static final String SET_CROP = "Set Crop Definition";
 	private static final String SHOW_CROP = "Show Crop Definition";
 	private static final String CROP = "Crop PDF";
 	private static final String EXIT = "Exit";
@@ -189,6 +190,11 @@ public class BrissGUI extends JFrame implements ActionListener,
 
 		JMenuItem cropstrButton;
 		cropstrButton = new JMenuItem(SHOW_CROP);
+		cropstrButton.addActionListener(this);
+		cropstrButton.setEnabled(true);
+		fileMenu.add(cropstrButton);
+
+		cropstrButton = new JMenuItem(SET_CROP);
 		cropstrButton.addActionListener(this);
 		cropstrButton.setEnabled(true);
 		fileMenu.add(cropstrButton);
@@ -460,6 +466,18 @@ public class BrissGUI extends JFrame implements ActionListener,
 		else if (action.getActionCommand().equals(SHOW_CROP)) {
 			ClusterDefinition clusters = workingSet.getClusterDefinition();
 			JOptionPane.showInputDialog(this, "Crop Option: ", CropParser.cropToString (clusters.getAllRatios()));
+		}
+		else if (action.getActionCommand().equals(SET_CROP)) {
+			ClusterDefinition clusters = workingSet.getClusterDefinition();
+			String cropStr = JOptionPane.showInputDialog(this, "Crop Option: ", CropParser.cropToString (clusters.getAllRatios()));
+			List<List<Float []>> rLL = CropParser.parse(cropStr);
+
+			for (int i = 0; i < rLL.size (); i++) {
+				clusters.getClusterList ().get(i).setRatiosList(rLL.get (i));
+			}
+			createMergedPanels (false);
+			pack();
+			repaint();
 		}
 		else if (action.getActionCommand().equals(CROP)) {
 			try {
@@ -772,19 +790,23 @@ public class BrissGUI extends JFrame implements ActionListener,
 		}
 	}
 
-	private void setStateAfterClusteringFinished(ClusterDefinition newClusters,
-			PageExcludes newPageExcludes, File newSource) {
-		updateWorkingSet(newClusters, newPageExcludes, newSource);
-
+	private void createMergedPanels (boolean autoCrop) {
 		previewPanel.removeAll();
 		mergedPanels = new ArrayList<MergedPanel>();
 
 		for (PageCluster cluster : workingSet.getClusterDefinition()
 				.getClusterList()) {
-			MergedPanel p = new MergedPanel(cluster, this);
+			MergedPanel p = new MergedPanel(cluster, this, autoCrop);
 			previewPanel.add(p);
 			mergedPanels.add(p);
 		}
+		previewPanel.revalidate();
+	}
+	private void setStateAfterClusteringFinished(ClusterDefinition newClusters,
+			PageExcludes newPageExcludes, File newSource) {
+		updateWorkingSet(newClusters, newPageExcludes, newSource);
+
+		createMergedPanels (true);
 		progressBar.setString("Clustering and Rendering finished");
 		cropButton.setEnabled(true);
 		maximizeWidthButton.setEnabled(true);
@@ -801,9 +823,8 @@ public class BrissGUI extends JFrame implements ActionListener,
 		selectAllButton.setEnabled(true);
 		selectNoneButton.setEnabled(true);
 		setIdleState("");
-		pack();
 		setExtendedState(Frame.MAXIMIZED_BOTH);
-		previewPanel.repaint();
+		pack();
 		repaint();
 	}
 

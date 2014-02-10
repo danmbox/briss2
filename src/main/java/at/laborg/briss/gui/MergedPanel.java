@@ -85,13 +85,15 @@ public class MergedPanel extends JPanel {
         
         private final BrissGUI briss;
 
-	public MergedPanel(PageCluster cluster, BrissGUI briss) {
+	public MergedPanel(PageCluster cluster, BrissGUI briss, boolean addAutoRatios) {
 		super();
-                this.briss = briss;
+		this.briss = briss;
 		this.cluster = cluster;
 		this.img = cluster.getImageData().getPreviewImage();
-		Float[] autoRatios = CropFinder.getAutoCropFloats(img);
-		cluster.addRatios(autoRatios);
+		if (addAutoRatios) {
+			Float[] autoRatios = CropFinder.getAutoCropFloats(img);
+			cluster.addRatios(autoRatios);
+		}
 		setPreferredSize(new Dimension(img.getWidth(), img.getHeight()));
 		setSize(new Dimension(img.getWidth(), img.getHeight()));
 		if (cluster.getImageData().isRenderable()) {
