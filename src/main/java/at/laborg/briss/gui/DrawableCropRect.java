@@ -5,6 +5,8 @@ package at.laborg.briss.gui;
 
 import java.awt.Point;
 import java.awt.Rectangle;
+import java.util.ArrayList;
+import java.util.List;
 
 @SuppressWarnings("serial")
 public class DrawableCropRect extends Rectangle {
@@ -28,6 +30,26 @@ public class DrawableCropRect extends Rectangle {
 
 	public DrawableCropRect() {
 		super();
+	}
+	
+	public DrawableCropRect(int x, int y, int w, int h) {
+		super(x, y, w, h);
+	}
+	
+	public final List<DrawableCropRect> split (List<Integer> at, boolean onX) {
+		List<DrawableCropRect> result = new ArrayList<DrawableCropRect> ();
+		at = new ArrayList<Integer> (at);
+		at.add(onX ? x + width : y + height);
+		int last = onX ? x : y;
+		for (int p : at) {
+			DrawableCropRect r = new DrawableCropRect (this);
+			int d = p - last;
+			if (onX) { r.x = last; r.width = d; }
+			else { r.y = last; r.height = d; }
+			last = p;
+			result.add (r);
+		}
+		return result;
 	}
 
 	public final boolean isSelected() {

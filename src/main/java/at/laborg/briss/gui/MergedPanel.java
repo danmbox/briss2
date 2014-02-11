@@ -39,8 +39,10 @@ import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.ListIterator;
 
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.SwingUtilities;
@@ -571,6 +573,42 @@ public class MergedPanel extends JPanel {
 				}
 				updateClusterRatios(crops);
 				repaint();
+			} else if (PopUpMenuForCropRectangles.SPLIT.equals(e.getActionCommand())) {
+				Point pt = popUpMenuPoint;
+				String [] options;
+				options = new String [] { "At point", "Equally" };
+				int optionAtPoint = JOptionPane.showOptionDialog(MergedPanel.this, "Split Type", "Split Type", JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null, options, options [0]);
+				if (optionAtPoint == JOptionPane.CLOSED_OPTION) return;
+				options = new String [] { "Horizontal", "Vertical" }; 
+				int optionHOrV = JOptionPane.showOptionDialog(MergedPanel.this, "Split Direction", "Split Direction", JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null, options, options [0]);
+				if (optionHOrV == JOptionPane.CLOSED_OPTION) return;
+				int n = 0;
+				if (optionAtPoint == 1) {
+					String nstr = JOptionPane.showInputDialog(MergedPanel.this, "Cells", "2");
+					if (nstr == null) return;
+					n = Integer.valueOf(nstr);
+					if (n <= 1) return;
+				}
+				for (ListIterator<DrawableCropRect> iter = crops.listIterator(); iter.hasNext (); ) {
+					DrawableCropRect crop = iter.next ();
+					if (crop.contains(pt)) {
+						List<Integer> splits = new ArrayList<Integer> ();
+						if (optionAtPoint == 0)
+							splits.add(optionHOrV == 0 ? pt.x : pt.y);
+						else {
+							float[][] params = new float[][] { { crop.x, crop.width }, { crop.y, crop.height } };
+							for (int i = 1; i < n; i++) {
+								splits.add ((int) Math.round (params [optionHOrV] [0] + i * params [optionHOrV] [1] / n));
+							}
+						}
+						List<DrawableCropRect> rs = crop.split(splits, optionHOrV == 0);
+						iter.remove();
+						for (DrawableCropRect r : rs)
+							iter.add(r);
+					}
+				}
+				updateClusterRatios(crops);
+				repaint();
 			} else if (PopUpMenuForCropRectangles.SELECT_DESELECT.equals(e
 					.getActionCommand())) {
 				changeSelectRectangle(popUpMenuPoint);
@@ -731,6 +769,7 @@ public class MergedPanel extends JPanel {
 
 		private class PopUpMenuForCropRectangles extends JPopupMenu {
 			public static final String DELETE = "Delete rectangle";
+			public static final String SPLIT = "Split rectangle";
 			public static final String SELECT_DESELECT = "Select/Deselect rectangle";
 			public static final String COPY = "Copy Selected rectangles";
 			public static final String PASTE = "Paste rectangles";
@@ -748,6 +787,9 @@ public class MergedPanel extends JPanel {
 					JMenuItem deleteItem = new JMenuItem(DELETE);
 					deleteItem.addActionListener(MergedPanelMouseAdapter.this);
 					add(deleteItem);
+					JMenuItem splitItem = new JMenuItem(SPLIT);
+					splitItem.addActionListener(MergedPanelMouseAdapter.this);
+					add(splitItem);
 					JMenuItem selectDeselectItem = new JMenuItem(
 							SELECT_DESELECT);
 					selectDeselectItem
