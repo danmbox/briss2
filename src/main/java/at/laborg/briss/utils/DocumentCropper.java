@@ -149,6 +149,7 @@ public final class DocumentCropper {
 
 		PdfDictionary pageDict;
 		int newPageNumber = 1;
+		int lastPageNumber = pdfMetaInformation.getSourcePageCount();  // continuously updated
 
 		for (int sourcePageNumber = 1; sourcePageNumber <= pdfMetaInformation
 				.getSourcePageCount(); sourcePageNumber++) {
@@ -162,6 +163,13 @@ public final class DocumentCropper {
 				continue;
 			}
 
+			// references to pages 1 .. newPageNumber are already correct;
+			// since N new pages replace 1 old page,
+			// shift references to all subsequent pages by N-1
+			int[] range = new int[] { newPageNumber + 1, lastPageNumber };
+			SimpleBookmark.shiftPageNumbers(
+					pdfMetaInformation.getSourceBookmarks(),
+					rectangleList.size() - 1, range);
 			for (Float[] ratios : rectangleList) {
 
 				pageDict = reader.getPageN(newPageNumber);
@@ -180,14 +188,8 @@ public final class DocumentCropper {
 				pageDict.put(PdfName.MEDIABOX, scaleBoxArray);
 				// increment the pagenumber
 				newPageNumber++;
+				lastPageNumber++;
 			}
-			int[] range = new int[2];
-			range[0] = newPageNumber - 1;
-			range[1] = pdfMetaInformation.getSourcePageCount()
-					+ (newPageNumber - sourcePageNumber);
-			SimpleBookmark.shiftPageNumbers(
-					pdfMetaInformation.getSourceBookmarks(),
-					rectangleList.size() - 1, range);
 		}
 		stamper.setOutlines(pdfMetaInformation.getSourceBookmarks());
 		stamper.close();
