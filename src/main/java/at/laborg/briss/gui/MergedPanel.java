@@ -589,6 +589,13 @@ public class MergedPanel extends JPanel {
 					n = Integer.valueOf(nstr);
 					if (n <= 1) return;
 				}
+				int overlap = 0;
+				{
+					String nstr = JOptionPane.showInputDialog(MergedPanel.this, "Overlap", "0");
+					if (nstr == null) return;
+					overlap = Integer.valueOf(nstr);
+					overlap = (int) Math.ceil(overlap / 2.0); 
+				}
 				for (ListIterator<DrawableCropRect> iter = crops.listIterator(); iter.hasNext (); ) {
 					DrawableCropRect crop = iter.next ();
 					if (crop.contains(pt)) {
@@ -598,10 +605,10 @@ public class MergedPanel extends JPanel {
 						else {
 							float[][] params = new float[][] { { crop.x, crop.width }, { crop.y, crop.height } };
 							for (int i = 1; i < n; i++) {
-								splits.add ((int) Math.round (params [optionHOrV] [0] + i * params [optionHOrV] [1] / n));
+								splits.add ((int) Math.round ((params [optionHOrV] [0] + overlap) + i * (params [optionHOrV] [1] - 2 * overlap) / n));
 							}
 						}
-						List<DrawableCropRect> rs = crop.split(splits, optionHOrV == 0);
+						List<DrawableCropRect> rs = crop.split(splits, overlap, optionHOrV == 0);
 						iter.remove();
 						for (DrawableCropRect r : rs)
 							iter.add(r);
