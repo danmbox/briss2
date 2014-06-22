@@ -567,7 +567,7 @@ public class MergedPanel extends JPanel {
 						break;
 					}
 				}
-				cluster.clearRatios();
+				updateClusterRatios(crops);
 				repaint();
 			} else if (PopUpMenuForCropRectangles.SELECT_DESELECT.equals(e
 					.getActionCommand())) {
