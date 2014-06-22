@@ -93,6 +93,7 @@ public class BrissGUI extends JFrame implements ActionListener,
 	private static final String SET_SIZE_DESCRIPTION = "Enter size in milimeters (width height)";
 	private static final String SET_POSITION_DESCRIPTION = "Enter position in milimeters (x y)";
 	private static final String LOAD = "Load File";
+	private static final String SHOW_CROP = "Show Crop Definition";
 	private static final String CROP = "Crop PDF";
 	private static final String EXIT = "Exit";
 	private static final String MAXIMIZE_WIDTH = "Maximize to width";
@@ -181,6 +182,13 @@ public class BrissGUI extends JFrame implements ActionListener,
 		loadButton.addActionListener(this);
 		loadButton.setEnabled(true);
 		loadButton.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_L, 0));
+		fileMenu.add(loadButton);
+
+		fileMenu.addSeparator();
+
+		loadButton = new JMenuItem(SHOW_CROP);
+		loadButton.addActionListener(this);
+		loadButton.setEnabled(true);
 		fileMenu.add(loadButton);
 
 		fileMenu.addSeparator();
@@ -446,11 +454,41 @@ public class BrissGUI extends JFrame implements ActionListener,
 						JOptionPane.ERROR_MESSAGE);
 			}
 
-		} else if (action.getActionCommand().equals(CROP)) {
+		}
+		else if (action.getActionCommand().equals(SHOW_CROP)) {
+			ClusterDefinition clusters = workingSet.getClusterDefinition();
+			StringBuilder crop = new StringBuilder();
+
+			for (int i = 0; i < clusters.getClusterList().size(); i++) {
+				PageCluster cluster = clusters.getClusterList().get(i);
+				for(int j = 0; j < cluster.getRatiosList().size(); j++) {
+					Float[] parts = cluster.getRatiosList().get(j);
+					for(int k = 0; k < parts.length; k++) {
+						// cut away those huge decimals
+						if(0.0 == parts[k])
+							crop.append('0');
+						else
+							crop.append(String.valueOf(parts[k].floatValue()));
+						if(k != parts.length - 1) {
+							crop.append('/');
+						}
+					}
+
+					if(j != cluster.getRatiosList().size() - 1) {
+						crop.append(',');
+					}
+				}
+
+				if(i != clusters.getClusterList().size() - 1) {
+					crop.append(":");
+				}
+			}
+			JOptionPane.showInputDialog(this, "Crop Option: ", crop.toString());
+		}
+		else if (action.getActionCommand().equals(CROP)) {
 			try {
 				setWorkingState("loading PDF");
-				File result = createAndExecuteCropJob(workingSet
-						.getSourceFile());
+				File result = createAndExecuteCropJob(workingSet.getSourceFile());
 				if (result != null) {
 					DesktopHelper.openFileWithDesktopApp(result);
 					lastOpenDir = result.getParentFile();

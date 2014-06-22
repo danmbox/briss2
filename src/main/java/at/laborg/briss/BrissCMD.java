@@ -19,6 +19,8 @@ package at.laborg.briss;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import at.laborg.briss.exception.CropException;
 import at.laborg.briss.model.ClusterDefinition;
@@ -97,13 +99,81 @@ public final class BrissCMD {
 		}
 	}
 
+	public static void customCrop(String[] args) {
+
+		CommandValues workDescription = CommandValues
+				.parseToWorkDescription(args);
+
+		if (!CommandValues.isValidJob(workDescription))
+			return;
+
+		System.out
+				.println("Clustering PDF: " + workDescription.getSourceFile());
+		ClusterDefinition clusterDefinition = null;
+		try {
+			clusterDefinition = ClusterCreator.clusterPages(
+					workDescription.getSourceFile(), null);
+		} catch (IOException e1) {
+			System.out.println("Error occured while clustering.");
+			e1.printStackTrace(System.out);
+			return;
+		}
+		System.out.println("Created "
+				+ clusterDefinition.getClusterList().size() + " clusters.");
+		if(workDescription.getCrop().size() != clusterDefinition.getClusterList().size()) {
+			System.err.println("You need to specify a crop definition for ALL clusters!");
+			return;
+		}
+
+		ClusterRenderWorker cRW = new ClusterRenderWorker(
+				workDescription.getSourceFile(), clusterDefinition);
+		cRW.start();
+
+		System.out.print("Starting to render clusters.");
+		while (cRW.isAlive()) {
+			System.out.print(".");
+			try {
+				Thread.sleep(500);
+			} catch (InterruptedException e) {
+			}
+		}
+		System.out.println("finished!");
+		System.out.println("setting crop rectangles.");
+		try {
+			// the config cluster definition applies here
+			for(int i = 0; i < clusterDefinition.getClusterList().size(); i++) {
+				List<Float[]> cluserrat = workDescription.getCrop().get(i);
+				for(Float[] cur : cluserrat) {
+					clusterDefinition.getClusterList().get(i).addRatios(cur);
+				}
+			}
+			CropDefinition cropDefintion = CropDefinition.createCropDefinition(
+					workDescription.getSourceFile(),
+					workDescription.getDestFile(), clusterDefinition);
+			System.out.println("Starting to crop files.");
+			DocumentCropper.crop(cropDefintion);
+			System.out.println("Cropping succesful. Cropped to:"
+					+ workDescription.getDestFile().getAbsolutePath());
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (IllegalArgumentException e) {
+			e.printStackTrace();
+		} catch (DocumentException e) {
+			e.printStackTrace();
+		} catch (CropException e) {
+			System.out.println("Error while cropping:" + e.getMessage());
+		}
+	}
+
 	private static class CommandValues {
 
 		private static final String SOURCE_FILE_CMD = "-s";
 		private static final String DEST_FILE_CMD = "-d";
+		private static final String CROP_CMD = "-c";
 
 		private File sourceFile;
 		private File destFile;
+		private List<List<Float[]>> crop = null;
 
 		static CommandValues parseToWorkDescription(final String[] args) {
 			CommandValues commandValues = new CommandValues();
@@ -117,11 +187,38 @@ public final class BrissCMD {
 					if (i < (args.length - 1)) {
 						commandValues.setDestFile(new File(args[i + 1]));
 					}
+				} else if (args[i].trim().equalsIgnoreCase(CROP_CMD)) {
+					if (i < (args.length - 1)) {
+						commandValues.setCropDefinition(args[i + 1]);
+					}
 				}
 				i++;
 			}
 
 			return commandValues;
+		}
+
+		/**
+		 * each page part: top/left/bottom/right
+		 * part1_page1,part2_page1,...:part1_page2,part2_page2
+		 * syntax: 0/0/0.5/0,0.5/0/0/0:0/0/0.5/0,0.5/0/0/0
+		 * @param string the command parameter
+		 */
+		private void setCropDefinition(String string) {
+			crop = new ArrayList<List<Float[]>>();
+			for(String page : string.split(":")) {
+				List<Float[]> pageratios = new ArrayList<Float[]>();
+				crop.add(pageratios);
+				for(String part : page.split(",")) {
+					String[] parts = part.split("/");
+					Float[] ratios = new Float[parts.length];
+					for(int i = 0; i < ratios.length; i++) {
+						ratios[i] = Float.parseFloat(parts[i]);
+					}
+					pageratios.add(ratios);
+				}
+			}
+
 		}
 
 		private static boolean isValidJob(final CommandValues job) {
@@ -171,6 +268,13 @@ public final class BrissCMD {
 
 		public void setDestFile(final File destFile) {
 			this.destFile = destFile;
+		}
+
+		/**
+		 * @return the crop
+		 */
+		public List<List<Float[]>> getCrop() {
+			return crop;
 		}
 
 	}

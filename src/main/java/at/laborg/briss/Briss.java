@@ -18,7 +18,7 @@
 package at.laborg.briss;
 
 public final class Briss {
-	
+
 	private Briss() {
 	};
 
@@ -28,7 +28,32 @@ public final class Briss {
 		System.setProperty("org.jpedal.jai", "true");
 
 		// check if args are present, if so try to start commandline briss
-		if (args.length > 1) {
+		boolean gui = true;
+		boolean customcrop = false;
+
+		for(String a : args) {
+			if(a.equalsIgnoreCase("-h") || a.equalsIgnoreCase("--help")) {
+				System.out.println("Usage:\n\tbriss [-s SOURCE] [-d DESTINATION] [-c CROPARGS]");
+				System.out.println("CROPARGS are in the format: part1_page1,part2_page1,...!part1_page2,part2_page2 \n where each part consists of 4 numbers: top/left/bottom/right");
+				System.out.println("You can use the GUI to get these (use File/Show Crop Command)");
+				System.out.println("split an a4 page into 2 a5:\n -c 0/0/0.5/0,0.5/0/0/0:0/0/0.5/0,0.5/0/0/0");
+				return;
+			}
+			else
+			if(a.equals("-c")) {
+				customcrop = true;
+			}
+			else
+			if(a.equals("-d")) {
+				gui = false;
+			}
+		}
+
+
+		if (!gui) {
+			if(customcrop)
+				BrissCMD.customCrop(args);
+			else
 			BrissCMD.autoCrop(args);
 		} else {
 			new BrissGUI(args);
