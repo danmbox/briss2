@@ -186,10 +186,11 @@ public class BrissGUI extends JFrame implements ActionListener,
 
 		fileMenu.addSeparator();
 
-		loadButton = new JMenuItem(SHOW_CROP);
-		loadButton.addActionListener(this);
-		loadButton.setEnabled(true);
-		fileMenu.add(loadButton);
+		JMenuItem cropstrButton;
+		cropstrButton = new JMenuItem(SHOW_CROP);
+		cropstrButton.addActionListener(this);
+		cropstrButton.setEnabled(true);
+		fileMenu.add(cropstrButton);
 
 		fileMenu.addSeparator();
 
