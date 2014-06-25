@@ -1,5 +1,11 @@
 This is a fork of http://briss.sourceforge.net/ that adds some
-features missing from the original and fixes some bugs. Build with:
+features missing from the original and fixes some bugs.
+
+Download:
+
+git clone git://github.com/danmbox/briss2.git
+
+Build with:
 
 mvn package assembly:single
 
