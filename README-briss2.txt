@@ -11,4 +11,4 @@ mvn package assembly:single
 
 then unpack the zip from target/ to the installation directory and run
 
-java -jar /path/to/briss-*.jar
+java -jar /path/to/briss-*.jar --help
