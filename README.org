@@ -1,0 +1,45 @@
+#+TITLE: briss2
+#+OPTIONS: toc:nil
+
+/PDF Cropper and Rearranger/
+
+  * Home page :: [[http://danmbox.github.com/briss2]]
+  * Downloads :: [[https://github.com/danmbox/briss2][github]]
+  * Author :: Gerhard Aigner; [[http://alumnus.caltech.edu/~muresan/][Dan A. Muresan]] (danmbox at gmail dot com)
+
+* DESCRIPTION
+
+  [[http://danmbox.github.com/briss2][briss2]] (a fork of the
+  [[http://briss.sourceforge.net/][original Briss]] project) can
+  convert two-column layouts to single-column, trim excessive margins
+  divide portrait documents into multiple landscape strips and more. See
+  the [[http://www.omnigia.com/news/content/briss-pdf-cropper-and-rearranger-1n-layouts][briss2 announcement]].
+
+* DEPENDENCIES
+
+  * Java 6
+  * maven
+  * itext, jpedal and Java Advanced Imaging API (pulled by maven during build)
+
+* INSTALLING
+
+Download with =git=; there is no installation script.
+
+=git clone git://github.com/danmbox/briss2.git=
+
+Build with:
+
+=mvn package assembly:single=
+
+then unpack the zip from target/ to the installation directory
+
+* RUNNING
+
+=java -jar /path/to/briss-*.jar --help=
+
+See also =README-briss.txt=
+
+* COPYRIGHT
+
+  * Copyright 2010 Gerhard Aigner; Copyright 2014 Dan A. Muresan
+  * License: GPL v3.0
