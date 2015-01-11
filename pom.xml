@@ -59,8 +59,8 @@
 
 <repositories>
       <repository>
-	<id>geotoolkit</id>
-	<url>http://maven.geotoolkit.org/</url>
+        <id>clojars.org</id>
+        <url>http://clojars.org/repo</url>
       </repository>
 </repositories>
 
@@ -96,10 +96,9 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
-			<groupId>jpedal</groupId>
-			<artifactId>jpedal</artifactId>
-			<version>4.92b23</version>
-			<scope>compile</scope>
+			<groupId>org.jpedal</groupId>
+			<artifactId>jpedal-lgpl</artifactId>
+			<version>4.74b27</version>
 		</dependency>
 				<dependency>
 			<groupId>javax.media</groupId>
