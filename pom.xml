@@ -62,6 +62,10 @@
         <id>clojars.org</id>
         <url>http://clojars.org/repo</url>
       </repository>
+      <repository>
+       <id>geotoolkit</id>
+       <url>http://maven.geotoolkit.org/</url>
+      </repository>
 </repositories>
 
 
