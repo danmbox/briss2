@@ -87,7 +87,7 @@ public final class BrissCMD {
 					workDescription.getDestFile(), clusterDefinition);
 			System.out.println("Starting to crop files.");
 			DocumentCropper.crop(cropDefintion);
-			System.out.println("Cropping succesful. Cropped to:"
+			System.out.println("Cropping successful. Cropped to:"
 					+ workDescription.getDestFile().getAbsolutePath());
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -153,7 +153,7 @@ public final class BrissCMD {
 					workDescription.getDestFile(), clusterDefinition);
 			System.out.println("Starting to crop files.");
 			DocumentCropper.crop(cropDefintion);
-			System.out.println("Cropping succesful. Cropped to:"
+			System.out.println("Cropping successful. Cropped to:"
 					+ workDescription.getDestFile().getAbsolutePath());
 		} catch (IOException e) {
 			e.printStackTrace();
