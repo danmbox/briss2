@@ -10,7 +10,7 @@ import java.awt.image.WritableRaster;
 public class ClusterImageData {
 
 	private static final int MAX_PAGE_HEIGHT = 900;
-	private static final int MAX_IMAGE_RENDER_SIZE = 2000 * 2000;
+	private static final int MAX_IMAGE_RENDER_SIZE = 10000 * 10000;
 
 	private final boolean renderable;
 	private BufferedImage outputImage = null;
