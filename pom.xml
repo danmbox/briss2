@@ -10,10 +10,10 @@
 		
 		mvn install:install-file -DgroupId=javax.media -DartifactId=jai_codec -Dpackaging=jar -Dversion=1.0 -Dfile=/home/gehrard/Downloads/jai_codec.jar -->
 	<groupId>at.laborg</groupId>
-	<artifactId>briss</artifactId>
-	<version>1.0-rc.1</version>
+	<artifactId>briss2</artifactId>
+	<version>1.0.1-rc.1</version>
 	<packaging>jar</packaging>
-	<name>briss</name>
+	<name>briss2</name>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>

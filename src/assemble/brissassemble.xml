@@ -28,7 +28,7 @@
 			<includes>
 				<include>com.lowagie:itext</include>
 				<include>multivalent:multivalent</include>
-				<include>at.laborg:briss</include>
+				<include>at.laborg:briss2</include>
 			</includes>
 		</dependencySet>
 	</dependencySets>
