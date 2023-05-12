@@ -17,7 +17,7 @@
 
 * DEPENDENCIES
 
-  * Java 6
+  * Java
   * maven
   * itext, jpedal and Java Advanced Imaging API (pulled by maven during build)
 
