@@ -12,8 +12,7 @@
   [[http://danmbox.github.com/briss2][briss2]] (a fork of the
   [[http://briss.sourceforge.net/][original Briss]] project) can
   convert two-column layouts to single-column, trim excessive margins
-  divide portrait documents into multiple landscape strips and more. See
-  the [[http://www.omnigia.com/news/content/briss-pdf-cropper-and-rearranger-1n-layouts][briss2 announcement]].
+  divide portrait documents into multiple landscape strips and more.
 
 * DEPENDENCIES
 
