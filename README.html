@@ -157,9 +157,7 @@ for the JavaScript code in this tag.
 <a href="http://danmbox.github.com/briss2">briss2</a> (a fork of the
 <a href="http://briss.sourceforge.net/">original Briss</a> project) can
 convert two-column layouts to single-column, trim excessive margins
-divide portrait documents into multiple landscape strips and more. See
-the <a href="http://www.omnigia.com/news/content/briss-pdf-cropper-and-rearranger-1n-layouts">briss2 announcement</a>.
-</p>
+divide portrait documents into multiple landscape strips and more.</p>
 </div>
 </div>
 
@@ -167,7 +165,7 @@ the <a href="http://www.omnigia.com/news/content/briss-pdf-cropper-and-rearrange
 <h2 id="sec-2"><span class="section-number-2">2</span> DEPENDENCIES</h2>
 <div class="outline-text-2" id="text-2">
 <ul class="org-ul">
-<li>Java 6
+<li>Java
 </li>
 <li>maven
 </li>
@@ -197,7 +195,22 @@ Build with:
 </p>
 
 <p>
-then unpack the zip from target/ to the installation directory
+then unpack the zip from target/ to the installation directory since
+it has the dependencies in it (you can't just use the .jar generated in
+the root directory without them!
+<p>
+<code>tar -xf briss2-*.tar.bz2</code>
+</p>
+or
+<p>
+<code>unzip briss2-*.zip</code>
+</p>
+
+and possibly move it somewhere.
+<p>
+<code>mv briss2-1.0.1-rc.1 ~/bin/briss2</code>
+</p>
+
 </p>
 </div>
 </div>
@@ -209,9 +222,6 @@ then unpack the zip from target/ to the installation directory
 <code>java -jar /path/to/briss-*.jar --help</code>
 </p>
 
-<p>
-See also <code>README-briss.txt</code>
-</p>
 </div>
 </div>
 
