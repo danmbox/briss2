@@ -17,7 +17,7 @@
 
 * DEPENDENCIES
 
-  * Java 6
+  * Java
   * maven
   * itext, jpedal and Java Advanced Imaging API (pulled by maven during build)
 
@@ -31,13 +31,23 @@ Build with:
 
 =mvn package assembly:single=
 
-then unpack the zip from target/ to the installation directory
+then unpack the zip from target/ to the installation directory since
+it has the dependencies in it (you can't just use the .jar generated in
+the root directory without them!
+
+=tar -xf briss2-*.tar.bz2=
+
+or
+
+=unzip briss2-*.zip=
+
+and possibly move it somewhere.
+
+=mv briss2-1.0.1-rc.1 ~/bin/briss2=
 
 * RUNNING
 
 =java -jar /path/to/briss-*.jar --help=
-
-See also =README-briss.txt=
 
 * COPYRIGHT
 
